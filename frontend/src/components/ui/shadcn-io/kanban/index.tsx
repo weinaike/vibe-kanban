@@ -18,10 +18,10 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { type ReactNode, type Ref, type KeyboardEvent } from 'react';
+import { type ReactNode, type Ref, type KeyboardEvent, useState, useEffect, useRef, Children } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ClientRect } from '@dnd-kit/core';
 import type { Transform } from '@dnd-kit/utilities';
 import { Button } from '../../button';
@@ -54,6 +54,8 @@ export const KanbanBoard = ({ id, children, className }: KanbanBoardProps) => {
     <div
       className={cn(
         'flex min-h-40 flex-col',
+        // Mobile: Full width with snap scrolling
+        'md:w-auto w-screen flex-shrink-0 snap-start snap-always',
         isOver ? 'outline-primary' : 'outline-black',
         className
       )}
@@ -276,6 +278,50 @@ export const KanbanProvider = ({
     })
   );
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const childrenArray = Children.toArray(children);
+  const totalPages = childrenArray.length;
+
+  // Track scroll position to update current page indicator
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const scrollLeft = container.scrollLeft;
+      const width = container.clientWidth;
+      const page = Math.round(scrollLeft / width);
+      setCurrentPage(page);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToPage = (page: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const width = container.clientWidth;
+    container.scrollTo({
+      left: page * width,
+      behavior: 'smooth',
+    });
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 0) {
+      scrollToPage(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages - 1) {
+      scrollToPage(currentPage + 1);
+    }
+  };
+
   return (
     <DndContext
       collisionDetection={rectIntersection}
@@ -283,13 +329,70 @@ export const KanbanProvider = ({
       sensors={sensors}
       modifiers={[restrictToFirstScrollableAncestorCustom]}
     >
+      {/* Desktop/Tablet: Multi-column grid layout */}
       <div
         className={cn(
-          'inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] divide-x border-x items-stretch min-h-full',
+          'hidden md:inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] divide-x border-x items-stretch min-h-full',
           className
         )}
       >
         {children}
+      </div>
+      
+      {/* Mobile: Single column with snap scrolling */}
+      <div className="md:hidden flex flex-col h-full">
+        <div
+          ref={scrollContainerRef}
+          className={cn(
+            'flex overflow-x-auto snap-x snap-mandatory scroll-smooth flex-1 min-h-0',
+            'scrollbar-hide',
+            className
+          )}
+        >
+          {children}
+        </div>
+        
+        {/* Mobile Navigation Controls */}
+        <div className="flex items-center justify-between p-4 border-t bg-background">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePrevious}
+            disabled={currentPage === 0}
+            className="h-8 w-8"
+            aria-label="Previous lane"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          {/* Page indicators */}
+          <div className="flex gap-2">
+            {childrenArray.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => scrollToPage(index)}
+                className={cn(
+                  'h-2 rounded-full transition-all',
+                  index === currentPage
+                    ? 'w-6 bg-primary'
+                    : 'w-2 bg-muted-foreground/30'
+                )}
+                aria-label={`Go to lane ${index + 1}`}
+              />
+            ))}
+          </div>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNext}
+            disabled={currentPage === totalPages - 1}
+            className="h-8 w-8"
+            aria-label="Next lane"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </DndContext>
   );
