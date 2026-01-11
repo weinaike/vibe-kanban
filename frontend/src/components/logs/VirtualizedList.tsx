@@ -1,5 +1,5 @@
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import DisplayConversationEntry from '../NormalizedConversation/DisplayConversationEntry';
 import { useEntries } from '@/contexts/EntriesContext';
@@ -17,12 +17,6 @@ interface VirtualizedListProps {
   attempt: WorkspaceWithSession;
   task?: TaskWithAttemptStatus;
 }
-
-interface MessageListContext {
-  attempt: WorkspaceWithSession;
-  task?: TaskWithAttemptStatus;
-}
-
 const VirtualizedList = ({ attempt, task }: VirtualizedListProps) => {
   const [entries, setEntriesState] = useState<PatchTypeWithKey[]>([]);
   const [loading, setLoading] = useState(true);
