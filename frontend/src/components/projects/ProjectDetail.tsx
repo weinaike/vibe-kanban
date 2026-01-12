@@ -2,23 +2,15 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useNavigateWithSearch } from '@/hooks';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FilesPanel } from '@/components/panels/FilesPanel';
 import { projectsApi } from '@/lib/api';
 import { useProjects } from '@/hooks/useProjects';
+import { useProjectRepos } from '@/hooks';
 import {
   AlertCircle,
   ArrowLeft,
-  Calendar,
   CheckSquare,
-  Clock,
   Edit,
   Loader2,
   Trash2,
@@ -33,9 +25,13 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const { t } = useTranslation('projects');
   const navigate = useNavigateWithSearch();
   const { projectsById, isLoading, error: projectsError } = useProjects();
+  const { data: repos } = useProjectRepos(projectId);
   const [deleteError, setDeleteError] = useState('');
 
   const project = projectsById[projectId] || null;
+
+  // Get the path from the first repo (if any)
+  const projectPath = repos && repos.length > 0 ? repos[0].path : undefined;
 
   const handleDelete = async () => {
     if (!project) return;
@@ -75,140 +71,81 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       ? projectsError.message
       : t('projectNotFound');
     return (
-      <div className="space-y-4 py-12 px-4">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Projects
-        </Button>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
-              <AlertCircle className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold">Project not found</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{errorMsg}</p>
-            <Button className="mt-4" onClick={onBack}>
-              Back to Projects
+      <div className="flex flex-col h-full">
+        <div className="border-b bg-background">
+          <div className="flex items-center px-6 py-4">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Project not found</h3>
+            <p className="text-sm text-muted-foreground mb-4">{errorMsg}</p>
+            <Button onClick={onBack}>Back to Projects</Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 py-12 px-4">
-      <div className="flex justify-between items-start">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Projects
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{project.name}</h1>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="border-b bg-background">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <div className="h-6 w-px bg-border" />
+            <div>
+              <h1 className="text-xl font-semibold">{project.name}</h1>
+              <p className="text-xs text-muted-foreground">
+                {repos && repos.length > 0 ? repos[0].path : 'No repository configured'}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Project details and settings
-            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${projectId}/tasks`)}>
+              <CheckSquare className="mr-2 h-4 w-4" />
+              Tasks
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleEditClick}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => navigate(`/projects/${projectId}/tasks`)}>
-            <CheckSquare className="mr-2 h-4 w-4" />
-            View Tasks
-          </Button>
-          <Button variant="outline" onClick={handleEditClick}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDelete}
-            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
-        </div>
       </div>
 
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <FilesPanel rootPath={projectPath} />
+      </div>
+
+      {/* Error Alert */}
       {deleteError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{deleteError}</AlertDescription>
-        </Alert>
+        <div className="absolute bottom-4 right-4 z-50 max-w-md">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{deleteError}</AlertDescription>
+          </Alert>
+        </div>
       )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calendar className="mr-2 h-5 w-5" />
-              Project Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
-                Status
-              </span>
-              <Badge variant="secondary">Active</Badge>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm">
-                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Created:</span>
-                <span className="ml-2">
-                  {new Date(project.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex items-center text-sm">
-                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Last Updated:</span>
-                <span className="ml-2">
-                  {new Date(project.updated_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Details</CardTitle>
-            <CardDescription>
-              Technical information about this project
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">
-                Project ID
-              </h4>
-              <code className="mt-1 block text-xs bg-muted p-2 rounded font-mono">
-                {project.id}
-              </code>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">
-                Created At
-              </h4>
-              <p className="mt-1 text-sm">
-                {new Date(project.created_at).toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">
-                Last Modified
-              </h4>
-              <p className="mt-1 text-sm">
-                {new Date(project.updated_at).toLocaleString()}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

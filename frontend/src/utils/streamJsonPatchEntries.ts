@@ -46,7 +46,16 @@ export function streamJsonPatchEntries<E = unknown>(
   if (opts.onEntries) subscribers.add(opts.onEntries);
 
   // Convert HTTP endpoint to WebSocket endpoint
-  const wsUrl = url.replace(/^http/, 'ws');
+  let wsUrl: string;
+  if (url.startsWith('/')) {
+    // Relative URL - construct absolute WebSocket URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    wsUrl = `${protocol}//${host}${url}`;
+  } else {
+    // Absolute URL - just replace protocol
+    wsUrl = url.replace(/^http/, 'ws');
+  }
   const ws = new WebSocket(wsUrl);
 
   const notify = () => {

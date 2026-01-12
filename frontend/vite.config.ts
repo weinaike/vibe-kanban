@@ -62,7 +62,9 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // 允许远程访问
     port: parseInt(process.env.FRONTEND_PORT || "3000"),
+    allowedHosts: 'all', // 允许所有主机访问
     proxy: {
       "/api": {
         target: `http://localhost:${process.env.BACKEND_PORT || "3001"}`,

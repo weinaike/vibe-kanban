@@ -18,10 +18,10 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { type ReactNode, type Ref, type KeyboardEvent, useState, useEffect, useRef, Children } from 'react';
+import { type ReactNode, type Ref, type KeyboardEvent, useState, Children } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
 import type { ClientRect } from '@dnd-kit/core';
 import type { Transform } from '@dnd-kit/utilities';
 import { Button } from '../../button';
@@ -49,19 +49,37 @@ export type KanbanBoardProps = {
 
 export const KanbanBoard = ({ id, children, className }: KanbanBoardProps) => {
   const { isOver, setNodeRef } = useDroppable({ id });
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Extract header and cards from children
+  const childrenArray = Children.toArray(children);
+  const header = childrenArray.find(
+    (child) => (child as any).type === KanbanHeader
+  );
+  const cards = childrenArray.find(
+    (child) => (child as any).type === KanbanCards
+  );
+
+  // Clone header with toggle props
+  const headerWithToggle = header
+    ? (KanbanHeader as any)({
+        ...(header as any).props,
+        onToggle: () => setIsExpanded(!isExpanded),
+        isExpanded,
+      })
+    : null;
 
   return (
     <div
       className={cn(
-        'flex min-h-40 flex-col',
-        // Mobile: Full width with snap scrolling
-        'md:w-auto w-screen flex-shrink-0 snap-start snap-always',
+        'flex flex-col min-h-full',
         isOver ? 'outline-primary' : 'outline-black',
         className
       )}
       ref={setNodeRef}
     >
-      {children}
+      {headerWithToggle}
+      {isExpanded && cards}
     </div>
   );
 };
@@ -149,12 +167,17 @@ export const KanbanCards = ({ children, className }: KanbanCardsProps) => (
 export type KanbanHeaderProps =
   | {
       children: ReactNode;
+      onToggle?: () => void;
+      isExpanded?: boolean;
     }
   | {
       name: Status['name'];
       color: Status['color'];
       className?: string;
       onAddTask?: () => void;
+      onToggle?: () => void;
+      isExpanded?: boolean;
+      count?: number;
     };
 
 export const KanbanHeader = (props: KanbanHeaderProps) => {
@@ -163,6 +186,11 @@ export const KanbanHeader = (props: KanbanHeaderProps) => {
   if ('children' in props) {
     return props.children;
   }
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    props.onToggle?.();
+  };
 
   return (
     <Card
@@ -175,13 +203,28 @@ export const KanbanHeader = (props: KanbanHeaderProps) => {
         backgroundImage: `linear-gradient(hsl(var(${props.color}) / 0.03), hsl(var(${props.color}) / 0.03))`,
       }}
     >
-      <span className="flex-1 flex items-center gap-2">
+      <span
+        className="flex-1 flex items-center gap-2 cursor-pointer lg:cursor-default"
+        onClick={handleToggle}
+      >
+        {/* Mobile collapse/expand icon */}
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 text-foreground/50 transition-transform lg:hidden',
+            props.isExpanded ? 'rotate-0' : '-rotate-90'
+          )}
+        />
         <div
           className="h-2 w-2 rounded-full"
           style={{ backgroundColor: `hsl(var(${props.color}))` }}
         />
 
         <p className="m-0 text-sm">{props.name}</p>
+        {props.count !== undefined && (
+          <span className="text-xs text-muted-foreground lg:hidden">
+            ({props.count})
+          </span>
+        )}
       </span>
       <TooltipProvider>
         <Tooltip>
@@ -278,50 +321,6 @@ export const KanbanProvider = ({
     })
   );
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const childrenArray = Children.toArray(children);
-  const totalPages = childrenArray.length;
-
-  // Track scroll position to update current page indicator
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      const width = container.clientWidth;
-      const page = Math.round(scrollLeft / width);
-      setCurrentPage(page);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToPage = (page: number) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    
-    const width = container.clientWidth;
-    container.scrollTo({
-      left: page * width,
-      behavior: 'smooth',
-    });
-  };
-
-  const handlePrevious = () => {
-    if (currentPage > 0) {
-      scrollToPage(currentPage - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages - 1) {
-      scrollToPage(currentPage + 1);
-    }
-  };
-
   return (
     <DndContext
       collisionDetection={rectIntersection}
@@ -332,67 +331,16 @@ export const KanbanProvider = ({
       {/* Desktop/Tablet: Multi-column grid layout */}
       <div
         className={cn(
-          'hidden md:inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] divide-x border-x items-stretch min-h-full',
+          'hidden lg:inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] divide-x border-x items-stretch min-h-full',
           className
         )}
       >
         {children}
       </div>
-      
-      {/* Mobile: Single column with snap scrolling */}
-      <div className="md:hidden flex flex-col h-full">
-        <div
-          ref={scrollContainerRef}
-          className={cn(
-            'flex overflow-x-auto snap-x snap-mandatory scroll-smooth flex-1 min-h-0',
-            'scrollbar-hide',
-            className
-          )}
-        >
-          {children}
-        </div>
-        
-        {/* Mobile Navigation Controls */}
-        <div className="flex items-center justify-between p-4 border-t bg-background">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePrevious}
-            disabled={currentPage === 0}
-            className="h-8 w-8"
-            aria-label="Previous lane"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          {/* Page indicators */}
-          <div className="flex gap-2">
-            {childrenArray.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => scrollToPage(index)}
-                className={cn(
-                  'h-2 rounded-full transition-all',
-                  index === currentPage
-                    ? 'w-6 bg-primary'
-                    : 'w-2 bg-muted-foreground/30'
-                )}
-                aria-label={`Go to lane ${index + 1}`}
-              />
-            ))}
-          </div>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNext}
-            disabled={currentPage === totalPages - 1}
-            className="h-8 w-8"
-            aria-label="Next lane"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+
+      {/* Mobile/Tablet: Vertical collapsible layout */}
+      <div className="lg:hidden flex flex-col divide-y border-x min-h-full">
+        {children}
       </div>
     </DndContext>
   );

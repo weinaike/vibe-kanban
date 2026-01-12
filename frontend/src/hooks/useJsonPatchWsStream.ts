@@ -92,7 +92,16 @@ export const useJsonPatchWsStream = <T extends object>(
       finishedRef.current = false;
 
       // Convert HTTP endpoint to WebSocket endpoint
-      const wsEndpoint = endpoint.replace(/^http/, 'ws');
+      let wsEndpoint: string;
+      if (endpoint.startsWith('/')) {
+        // Relative URL - construct absolute WebSocket URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        wsEndpoint = `${protocol}//${host}${endpoint}`;
+      } else {
+        // Absolute URL - just replace protocol
+        wsEndpoint = endpoint.replace(/^http/, 'ws');
+      }
       const ws = new WebSocket(wsEndpoint);
 
       ws.onopen = () => {

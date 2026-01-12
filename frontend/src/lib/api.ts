@@ -13,6 +13,7 @@ import {
   CreateTag,
   DirectoryListResponse,
   DirectoryEntry,
+  FileReadResponse,
   ExecutionProcess,
   ExecutionProcessRepoState,
   GitBranch,
@@ -798,6 +799,13 @@ export const fileSystemApi = {
       `/api/filesystem/git-repos${queryParam}`
     );
     return handleApiResponse<DirectoryEntry[]>(response);
+  },
+
+  readFile: async (path: string): Promise<FileReadResponse> => {
+    const response = await makeRequest(
+      `/api/filesystem/read-file?path=${encodeURIComponent(path)}`
+    );
+    return handleApiResponse<FileReadResponse>(response);
   },
 };
 

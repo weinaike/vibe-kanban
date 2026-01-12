@@ -115,6 +115,18 @@ function ProjectCard({ project, isFocused, setError, onEdit }: Props) {
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg">{project.name}</CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/projects/${project.id}`);
+              }}
+            >
+              <FolderOpen className="mr-1 h-4 w-4" />
+              <span className="hidden sm:inline">Directory</span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">

@@ -412,6 +412,10 @@
 .diff-tailwindcss-wrapper .diff-line-new-num,
 .diff-tailwindcss-wrapper .diff-line-num {
   text-align: right;
+  min-width: 40px !important;
+  width: 40px !important;
+  padding-left: 4px !important;
+  padding-right: 8px !important;
 }
 
 .diff-tailwindcss-wrapper .diff-style-root tr {

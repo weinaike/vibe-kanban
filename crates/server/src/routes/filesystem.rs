@@ -6,7 +6,7 @@ use axum::{
 };
 use deployment::Deployment;
 use serde::Deserialize;
-use services::services::filesystem::{DirectoryEntry, DirectoryListResponse, FilesystemError};
+use services::services::filesystem::{DirectoryEntry, DirectoryListResponse, FileReadResponse, FilesystemError};
 use utils::response::ApiResponse;
 
 use crate::{DeploymentImpl, error::ApiError};
@@ -14,6 +14,11 @@ use crate::{DeploymentImpl, error::ApiError};
 #[derive(Debug, Deserialize)]
 pub struct ListDirectoryQuery {
     path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReadFileQuery {
+    path: String,
 }
 
 pub async fn list_directory(
@@ -71,8 +76,26 @@ pub async fn list_git_repos(
     }
 }
 
+pub async fn read_file(
+    State(deployment): State<DeploymentImpl>,
+    Query(query): Query<ReadFileQuery>,
+) -> Result<ResponseJson<ApiResponse<FileReadResponse>>, ApiError> {
+    match deployment.filesystem().read_file(query.path).await {
+        Ok(response) => Ok(ResponseJson(ApiResponse::success(response))),
+        Err(FilesystemError::Io(e)) => {
+            tracing::error!("Failed to read file: {}", e);
+            Ok(ResponseJson(ApiResponse::error(&format!(
+                "Failed to read file: {}",
+                e
+            ))))
+        }
+        _ => Ok(ResponseJson(ApiResponse::error("Failed to read file"))),
+    }
+}
+
 pub fn router() -> Router<DeploymentImpl> {
     Router::new()
         .route("/filesystem/directory", get(list_directory))
         .route("/filesystem/git-repos", get(list_git_repos))
+        .route("/filesystem/read-file", get(read_file))
 }

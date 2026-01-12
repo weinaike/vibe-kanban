@@ -3,7 +3,7 @@ import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-export type LayoutMode = 'preview' | 'diffs' | null;
+export type LayoutMode = 'preview' | 'diffs' | 'files' | null;
 
 interface TasksLayoutProps {
   kanban: ReactNode;
@@ -154,7 +154,7 @@ function RightWorkArea({
               collapsible={false}
               className="min-w-0 min-h-0 overflow-hidden"
               role="region"
-              aria-label={mode === 'preview' ? 'Preview' : 'Diffs'}
+              aria-label={mode === 'preview' ? 'Preview' : mode === 'diffs' ? 'Diffs' : 'Files'}
             >
               <AuxRouter mode={mode} aux={aux} />
             </Panel>

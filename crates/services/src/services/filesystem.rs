@@ -29,12 +29,21 @@ pub struct DirectoryListResponse {
 }
 
 #[derive(Debug, Serialize, TS)]
+#[ts(export)]
 pub struct DirectoryEntry {
     pub name: String,
     pub path: PathBuf,
     pub is_directory: bool,
     pub is_git_repo: bool,
     pub last_modified: Option<u64>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export)]
+pub struct FileReadResponse {
+    pub content: String,
+    pub path: String,
+    pub is_binary: bool,
 }
 
 impl Default for FilesystemService {
@@ -319,5 +328,47 @@ impl FilesystemService {
             entries: directory_entries,
             current_path: path.to_string_lossy().to_string(),
         })
+    }
+
+    pub async fn read_file(&self, path: String) -> Result<FileReadResponse, FilesystemError> {
+        let path_obj = PathBuf::from(&path);
+
+        if !path_obj.exists() {
+            return Err(FilesystemError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "File does not exist",
+            )));
+        }
+
+        if path_obj.is_dir() {
+            return Err(FilesystemError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Path is a directory",
+            )));
+        }
+
+        // Try reading as text
+        match fs::read_to_string(&path_obj) {
+            Ok(content) => Ok(FileReadResponse {
+                content,
+                path,
+                is_binary: false,
+            }),
+            Err(_) => {
+                // Check if it's a binary file
+                let bytes = fs::read(&path_obj)?;
+                let is_binary = bytes.iter().any(|&b| b == 0);
+
+                Ok(FileReadResponse {
+                    content: if is_binary {
+                        format!("[Binary file - {} bytes]", bytes.len())
+                    } else {
+                        String::from_utf8_lossy(&bytes).to_string()
+                    },
+                    path,
+                    is_binary,
+                })
+            }
+        }
     }
 }

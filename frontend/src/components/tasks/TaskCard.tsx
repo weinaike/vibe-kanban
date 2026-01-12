@@ -133,7 +133,7 @@ export function TaskCard({
           }
         />
         {task.description && (
-          <p className="text-sm text-secondary-foreground break-words">
+          <p className="hidden lg:block text-sm text-secondary-foreground break-words">
             {task.description.length > 130
               ? `${task.description.substring(0, 130)}...`
               : task.description}
