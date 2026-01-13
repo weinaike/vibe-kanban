@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LogIn, Github, Loader2, Chrome } from 'lucide-react';
+import { LogIn, Loader2 } from 'lucide-react';
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuthMutations } from '@/hooks/auth/useAuthMutations';
@@ -18,7 +18,7 @@ import type { ProfileResponse } from 'shared/types';
 import { useTranslation } from 'react-i18next';
 import { defineModal, type NoProps } from '@/lib/modals';
 
-type OAuthProvider = 'github' | 'google';
+type OAuthProvider = 'casdoor';
 
 type OAuthState =
   | { type: 'select' }
@@ -112,14 +112,14 @@ const OAuthDialogImpl = NiceModal.create<NoProps>(() => {
     }
   }, [statusData, isPolling, modal, reloadSystem]);
 
-  const handleProviderSelect = (provider: OAuthProvider) => {
-    setState({ type: 'waiting', provider });
+  const handleLogin = () => {
+    setState({ type: 'waiting', provider: 'casdoor' });
 
     // Get the current window location as return_to
     const returnTo = `${window.location.origin}/api/auth/handoff/complete`;
 
     // Initialize handoff flow
-    initHandoff.mutate({ provider, returnTo });
+    initHandoff.mutate({ provider: 'casdoor', returnTo });
   };
 
   const handleClose = () => {
@@ -165,23 +165,13 @@ const OAuthDialogImpl = NiceModal.create<NoProps>(() => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 py-4">
+            <div className="py-4">
               <Button
-                variant="outline"
-                className="w-full h-12 flex items-center justify-center gap-3"
-                onClick={() => handleProviderSelect('github')}
+                variant="default"
+                className="w-full h-12"
+                onClick={handleLogin}
               >
-                <Github className="h-5 w-5" />
-                <span>{t('oauth.continueWithGitHub')}</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full h-12 flex items-center justify-center gap-3"
-                onClick={() => handleProviderSelect('google')}
-              >
-                <Chrome className="h-5 w-5" />
-                <span>{t('oauth.continueWithGoogle')}</span>
+                <span>{t('oauth.loginWithCasdoor')}</span>
               </Button>
             </div>
 

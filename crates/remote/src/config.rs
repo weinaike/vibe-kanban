@@ -120,8 +120,6 @@ pub enum ConfigError {
     MissingVar(&'static str),
     #[error("invalid value for environment variable `{0}`")]
     InvalidVar(&'static str),
-    #[error("no OAuth providers configured")]
-    NoOAuthProviders,
 }
 
 impl RemoteServerConfig {
@@ -169,18 +167,43 @@ impl RemoteServerConfig {
     }
 }
 
+/// Casdoor OAuth configuration
 #[derive(Debug, Clone)]
-pub struct OAuthProviderConfig {
+pub struct CasdoorConfig {
     client_id: String,
     client_secret: SecretString,
+    endpoint: String,
+    organization: String,
+    application: String,
 }
 
-impl OAuthProviderConfig {
-    fn new(client_id: String, client_secret: SecretString) -> Self {
-        Self {
+impl CasdoorConfig {
+    fn from_env() -> Result<Self, ConfigError> {
+        let client_id = env::var("CASDOOR_OAUTH_CLIENT_ID")
+            .map_err(|_| ConfigError::MissingVar("CASDOOR_OAUTH_CLIENT_ID"))?;
+        let client_secret = env::var("CASDOOR_OAUTH_CLIENT_SECRET")
+            .map_err(|_| ConfigError::MissingVar("CASDOOR_OAUTH_CLIENT_SECRET"))?;
+        let endpoint = env::var("CASDOOR_ENDPOINT")
+            .unwrap_or_else(|_| "https://auth.yes-tek.com".to_string());
+        let organization = env::var("CASDOOR_ORGANIZATION")
+            .map_err(|_| ConfigError::MissingVar("CASDOOR_ORGANIZATION"))?;
+        let application = env::var("CASDOOR_APPLICATION")
+            .map_err(|_| ConfigError::MissingVar("CASDOOR_APPLICATION"))?;
+
+        tracing::info!(
+            endpoint = %endpoint,
+            organization = %organization,
+            application = %application,
+            "Casdoor config loaded successfully"
+        );
+
+        Ok(Self {
             client_id,
-            client_secret,
-        }
+            client_secret: SecretString::new(client_secret.into()),
+            endpoint,
+            organization,
+            application,
+        })
     }
 
     pub fn client_id(&self) -> &str {
@@ -190,12 +213,23 @@ impl OAuthProviderConfig {
     pub fn client_secret(&self) -> &SecretString {
         &self.client_secret
     }
+
+    pub fn endpoint(&self) -> &str {
+        &self.endpoint
+    }
+
+    pub fn organization(&self) -> &str {
+        &self.organization
+    }
+
+    pub fn application(&self) -> &str {
+        &self.application
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct AuthConfig {
-    github: Option<OAuthProviderConfig>,
-    google: Option<OAuthProviderConfig>,
+    casdoor: CasdoorConfig,
     jwt_secret: SecretString,
     public_base_url: String,
 }
@@ -207,51 +241,20 @@ impl AuthConfig {
         validate_jwt_secret(&jwt_secret)?;
         let jwt_secret = SecretString::new(jwt_secret.into());
 
-        let github = match env::var("GITHUB_OAUTH_CLIENT_ID") {
-            Ok(client_id) => {
-                let client_secret = env::var("GITHUB_OAUTH_CLIENT_SECRET")
-                    .map_err(|_| ConfigError::MissingVar("GITHUB_OAUTH_CLIENT_SECRET"))?;
-                Some(OAuthProviderConfig::new(
-                    client_id,
-                    SecretString::new(client_secret.into()),
-                ))
-            }
-            Err(_) => None,
-        };
-
-        let google = match env::var("GOOGLE_OAUTH_CLIENT_ID") {
-            Ok(client_id) => {
-                let client_secret = env::var("GOOGLE_OAUTH_CLIENT_SECRET")
-                    .map_err(|_| ConfigError::MissingVar("GOOGLE_OAUTH_CLIENT_SECRET"))?;
-                Some(OAuthProviderConfig::new(
-                    client_id,
-                    SecretString::new(client_secret.into()),
-                ))
-            }
-            Err(_) => None,
-        };
-
-        if github.is_none() && google.is_none() {
-            return Err(ConfigError::NoOAuthProviders);
-        }
+        let casdoor = CasdoorConfig::from_env()?;
 
         let public_base_url =
             env::var("SERVER_PUBLIC_BASE_URL").unwrap_or_else(|_| "http://localhost:8081".into());
 
         Ok(Self {
-            github,
-            google,
+            casdoor,
             jwt_secret,
             public_base_url,
         })
     }
 
-    pub fn github(&self) -> Option<&OAuthProviderConfig> {
-        self.github.as_ref()
-    }
-
-    pub fn google(&self) -> Option<&OAuthProviderConfig> {
-        self.google.as_ref()
+    pub fn casdoor(&self) -> &CasdoorConfig {
+        &self.casdoor
     }
 
     pub fn jwt_secret(&self) -> &SecretString {

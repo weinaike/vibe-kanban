@@ -1,13 +1,13 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use anyhow::{Context, bail};
+use anyhow::Context;
 use secrecy::ExposeSecret;
 use tracing::instrument;
 
 use crate::{
     AppState,
     auth::{
-        GitHubOAuthProvider, GoogleOAuthProvider, JwtService, OAuthHandoffService,
+        CasdoorOAuthProvider, JwtService, OAuthHandoffService,
         OAuthTokenValidator, ProviderRegistry,
     },
     config::RemoteServerConfig,
@@ -46,23 +46,14 @@ impl Server {
 
         let mut registry = ProviderRegistry::new();
 
-        if let Some(github) = auth_config.github() {
-            registry.register(GitHubOAuthProvider::new(
-                github.client_id().to_string(),
-                github.client_secret().clone(),
-            )?);
-        }
-
-        if let Some(google) = auth_config.google() {
-            registry.register(GoogleOAuthProvider::new(
-                google.client_id().to_string(),
-                google.client_secret().clone(),
-            )?);
-        }
-
-        if registry.is_empty() {
-            bail!("no OAuth providers configured");
-        }
+        let casdoor = auth_config.casdoor();
+        registry.register(CasdoorOAuthProvider::new(
+            casdoor.client_id().to_string(),
+            casdoor.client_secret().clone(),
+            casdoor.endpoint().to_string(),
+            casdoor.organization().to_string(),
+            casdoor.application().to_string(),
+        )?);
 
         let registry = Arc::new(registry);
 

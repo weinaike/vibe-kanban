@@ -81,10 +81,9 @@
   "oauth": {
     "title": "Sign in to Vibe Kanban",
     "description": "Sign in to join organizations and share tasks with your team",
-    "continueWithGitHub": "Continue with GitHub",
-    "continueWithGoogle": "Continue with Google",
+    "loginWithCasdoor": "Login with Casdoor",
     "waitingTitle": "Complete Authentication",
-    "waitingDescription": "A popup window has been opened for authentication",
+    "waitingDescription": "Complete Casdoor authentication in the popup window",
     "waitingForAuth": "Waiting for authentication...",
     "popupInstructions": "If the popup window didn't open, please check your popup blocker settings.",
     "back": "Back",

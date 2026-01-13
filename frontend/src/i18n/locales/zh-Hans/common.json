@@ -81,10 +81,9 @@
   "oauth": {
     "title": "登录 Vibe Kanban",
     "description": "登录以加入组织并与团队共享任务",
-    "continueWithGitHub": "使用 GitHub 继续",
-    "continueWithGoogle": "使用 Google 继续",
+    "loginWithCasdoor": "使用 Casdoor 登录",
     "waitingTitle": "完成身份验证",
-    "waitingDescription": "已打开弹出窗口进行身份验证",
+    "waitingDescription": "请在弹出窗口中完成 Casdoor 认证",
     "waitingForAuth": "等待身份验证...",
     "popupInstructions": "如果弹出窗口未打开，请检查您的弹窗拦截器设置。",
     "back": "返回",
