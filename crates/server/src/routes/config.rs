@@ -25,7 +25,7 @@ use services::services::config::{
 };
 use tokio::fs;
 use ts_rs::TS;
-use utils::{api::oauth::LoginStatus, assets::config_path, response::ApiResponse};
+use utils::{assets::config_path, response::ApiResponse};
 
 use crate::{DeploymentImpl, error::ApiError};
 
@@ -73,7 +73,6 @@ impl Environment {
 pub struct UserSystemInfo {
     pub config: Config,
     pub analytics_user_id: String,
-    pub login_status: LoginStatus,
     #[serde(flatten)]
     pub profiles: ExecutorConfigs,
     pub environment: Environment,
@@ -87,12 +86,10 @@ async fn get_user_system_info(
     State(deployment): State<DeploymentImpl>,
 ) -> ResponseJson<ApiResponse<UserSystemInfo>> {
     let config = deployment.config().read().await;
-    let login_status = deployment.get_login_status().await;
 
     let user_system_info = UserSystemInfo {
         config: config.clone(),
         analytics_user_id: deployment.user_id().to_string(),
-        login_status,
         profiles: ExecutorConfigs::get_cached(),
         environment: Environment::new(),
         capabilities: {

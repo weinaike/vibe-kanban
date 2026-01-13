@@ -1,38 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
-import { getSharedTaskAssignees } from '@/lib/remoteApi';
-import type { SharedTask, UserData } from 'shared/types';
-import { useEffect, useMemo } from 'react';
+// Simplified version for local-only mode (shared tasks removed)
+import type { UserData } from 'shared/types';
 
 interface UseAssigneeUserNamesOptions {
   projectId: string | undefined;
-  sharedTasks?: SharedTask[];
+  sharedTasks?: unknown[]; // Changed from SharedTask[] to unknown[]
 }
 
-export function useAssigneeUserNames(options: UseAssigneeUserNamesOptions) {
-  const { projectId, sharedTasks } = options;
-
-  const { data: assignees, refetch } = useQuery<UserData[], Error>({
-    queryKey: ['project', 'assignees', projectId],
-    queryFn: () => getSharedTaskAssignees(projectId!),
-    enabled: Boolean(projectId),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const assignedUserIds = useMemo(() => {
-    if (!sharedTasks) return null;
-    return Array.from(
-      new Set(sharedTasks.map((task) => task.assignee_user_id))
-    );
-  }, [sharedTasks]);
-
-  // Refetch when assignee ids change
-  useEffect(() => {
-    if (!assignedUserIds) return;
-    refetch();
-  }, [assignedUserIds, refetch]);
-
+export function useAssigneeUserNames(_options: UseAssigneeUserNamesOptions) {
+  // Local-only mode: no shared task assignees
   return {
-    assignees,
-    refetchAssignees: refetch,
+    assignees: [] as UserData[],
+    refetchAssignees: () => {},
   };
 }

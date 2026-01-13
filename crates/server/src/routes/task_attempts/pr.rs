@@ -425,22 +425,6 @@ pub async fn attach_existing_pr(
         // If PR is merged, mark task as done
         if matches!(pr_info.status, MergeStatus::Merged) {
             Task::update_status(pool, task.id, TaskStatus::Done).await?;
-
-            // Try broadcast update to other users in organization
-            if let Ok(publisher) = deployment.share_publisher() {
-                if let Err(err) = publisher.update_shared_task_by_id(task.id).await {
-                    tracing::warn!(
-                        ?err,
-                        "Failed to propagate shared task update for {}",
-                        task.id
-                    );
-                }
-            } else {
-                tracing::debug!(
-                    "Share publisher unavailable; skipping remote update for {}",
-                    task.id
-                );
-            }
         }
 
         Ok(ResponseJson(ApiResponse::success(AttachPrResponse {

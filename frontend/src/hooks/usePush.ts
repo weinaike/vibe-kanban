@@ -1,49 +1,19 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { attemptsApi } from '@/lib/api';
-import type { PushError, PushTaskAttemptRequest } from 'shared/types';
-
-class PushErrorWithData extends Error {
-  constructor(
-    message: string,
-    public errorData?: PushError
-  ) {
-    super(message);
-    this.name = 'PushErrorWithData';
-  }
-}
+import type { PushTaskAttemptRequest, PushError } from 'shared/types';
+import type { Result } from '@/lib/api';
 
 export function usePush(
-  attemptId?: string,
+  attemptId: string | undefined,
   onSuccess?: () => void,
-  onError?: (
-    err: unknown,
-    errorData?: PushError,
-    params?: PushTaskAttemptRequest
-  ) => void
+  onError?: (err: unknown) => void
 ) {
-  const queryClient = useQueryClient();
-
-  return useMutation<void, unknown, PushTaskAttemptRequest>({
+  return useMutation({
     mutationFn: async (params: PushTaskAttemptRequest) => {
-      if (!attemptId) return;
-      const result = await attemptsApi.push(attemptId, params);
-      if (!result.success) {
-        throw new PushErrorWithData(
-          result.message || 'Push failed',
-          result.error
-        );
-      }
+      if (!attemptId) throw new Error('attemptId is required');
+      return attemptsApi.push(attemptId, params) as Promise<Result<void, PushError>>;
     },
-    onSuccess: () => {
-      // A push only affects remote status; invalidate the same branchStatus
-      queryClient.invalidateQueries({ queryKey: ['branchStatus', attemptId] });
-      onSuccess?.();
-    },
-    onError: (err, variables) => {
-      console.error('Failed to push:', err);
-      const errorData =
-        err instanceof PushErrorWithData ? err.errorData : undefined;
-      onError?.(err, errorData, variables);
-    },
+    onSuccess,
+    onError,
   });
 }

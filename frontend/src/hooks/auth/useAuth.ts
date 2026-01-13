@@ -1,12 +1,15 @@
-import { useUserSystem } from '../../components/ConfigProvider';
+// Stub for local-only mode (OAuth removed)
+import { useMemo } from 'react';
 
 export function useAuth() {
-  const { loginStatus } = useUserSystem();
-
-  return {
-    isSignedIn: loginStatus?.status === 'loggedin',
-    isLoaded: loginStatus !== null,
-    userId:
-      loginStatus?.status === 'loggedin' ? loginStatus.profile.user_id : null,
-  };
+  return useMemo(
+    () => ({
+      isSignedIn: false,
+      isLoaded: true,
+      profile: null,
+      isLoading: false,
+      userId: null as string | null,
+    }),
+    []
+  );
 }

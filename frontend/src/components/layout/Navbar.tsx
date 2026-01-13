@@ -1,23 +1,12 @@
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   FolderOpen,
   Settings,
   BookOpen,
   MessageCircleQuestion,
-  MessageCircle,
-  Menu,
   Plus,
-  LogOut,
-  LogIn,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
@@ -27,19 +16,12 @@ import { useProject } from '@/contexts/ProjectContext';
 import { useOpenProjectInEditor } from '@/hooks/useOpenProjectInEditor';
 import { OpenInIdeButton } from '@/components/ide/OpenInIdeButton';
 import { useProjectRepos } from '@/hooks';
-import { useTranslation } from 'react-i18next';
-import { Switch } from '@/components/ui/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { OAuthDialog } from '@/components/dialogs/global/OAuthDialog';
-import { useUserSystem } from '@/components/ConfigProvider';
-import { oauthApi } from '@/lib/api';
 
-const INTERNAL_NAV = [{ label: 'Projects', icon: FolderOpen, to: '/projects' }];
+const INTERNAL_NAV = [
+  { label: 'Projects', icon: FolderOpen, to: '/projects' },
+];
+
+const SETTINGS_NAV = { label: 'Settings', icon: Settings, to: '/settings' };
 
 const EXTERNAL_LINKS = [
   {
@@ -51,11 +33,6 @@ const EXTERNAL_LINKS = [
     label: 'Support',
     icon: MessageCircleQuestion,
     href: 'https://github.com/BloopAI/vibe-kanban/issues',
-  },
-  {
-    label: 'Discord',
-    icon: MessageCircle,
-    href: 'https://discord.gg/AC4nwVtJM3',
   },
 ];
 
@@ -70,12 +47,9 @@ function NavDivider() {
 }
 
 export function Navbar() {
-  const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { projectId, project } = useProject();
   const { query, setQuery, active, clear, registerInputRef } = useSearch();
   const handleOpenInEditor = useOpenProjectInEditor(project || null);
-  const { loginStatus, reloadSystem } = useUserSystem();
 
   const { data: repos } = useProjectRepos(projectId);
   const isSingleRepoProject = repos?.length === 1;
@@ -85,25 +59,6 @@ export function Navbar() {
       registerInputRef(node);
     },
     [registerInputRef]
-  );
-  const { t } = useTranslation(['tasks', 'common']);
-  // Navbar is global, but the share tasks toggle only makes sense on the tasks route
-  const isTasksRoute = /^\/projects\/[^/]+\/tasks/.test(location.pathname);
-  const showSharedTasks = searchParams.get('shared') !== 'off';
-  const shouldShowSharedToggle =
-    isTasksRoute && active && project?.remote_project_id != null;
-
-  const handleSharedToggle = useCallback(
-    (checked: boolean) => {
-      const params = new URLSearchParams(searchParams);
-      if (checked) {
-        params.delete('shared');
-      } else {
-        params.set('shared', 'off');
-      }
-      setSearchParams(params, { replace: true });
-    },
-    [searchParams, setSearchParams]
   );
 
   const handleCreateTask = () => {
@@ -115,24 +70,6 @@ export function Navbar() {
   const handleOpenInIDE = () => {
     handleOpenInEditor();
   };
-
-  const handleOpenOAuth = async () => {
-    const profile = await OAuthDialog.show();
-    if (profile) {
-      await reloadSystem();
-    }
-  };
-
-  const handleOAuthLogout = async () => {
-    try {
-      await oauthApi.logout();
-      await reloadSystem();
-    } catch (err) {
-      console.error('Error logging out:', err);
-    }
-  };
-
-  const isOAuthLoggedIn = loginStatus?.status === 'loggedin';
 
   return (
     <div className="border-b bg-background">
@@ -157,30 +94,6 @@ export function Navbar() {
           </div>
 
           <div className="flex flex-1 items-center justify-end gap-1">
-            {isOAuthLoggedIn && shouldShowSharedToggle ? (
-              <>
-                <div className="flex items-center gap-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <Switch
-                            checked={showSharedTasks}
-                            onCheckedChange={handleSharedToggle}
-                            aria-label={t('tasks:filters.sharedToggleAria')}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        {t('tasks:filters.sharedToggleTooltip')}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <NavDivider />
-              </>
-            ) : null}
-
             {projectId ? (
               <>
                 <div className="flex items-center gap-1">
@@ -205,87 +118,62 @@ export function Navbar() {
             ) : null}
 
             <div className="flex items-center gap-1">
+              {INTERNAL_NAV.map((item) => {
+                const active = location.pathname.startsWith(item.to);
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.to}
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className={active ? 'bg-accent' : ''}
+                  >
+                    <Link to={item.to}>
+                      <Icon className="mr-2 h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  </Button>
+                );
+              })}
+
+              {EXTERNAL_LINKS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.href}
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                  >
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Icon className="mr-2 h-4 w-4" />
+                      {item.label}
+                    </a>
+                  </Button>
+                );
+              })}
+
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-9 w-9"
+                size="sm"
                 asChild
-                aria-label="Settings"
               >
                 <Link
                   to={
                     projectId
                       ? `/settings/projects?projectId=${projectId}`
-                      : '/settings'
+                      : SETTINGS_NAV.to
                   }
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="mr-2 h-4 w-4" />
+                  {SETTINGS_NAV.label}
                 </Link>
               </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    aria-label="Main navigation"
-                  >
-                    <Menu className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent align="end">
-                  {INTERNAL_NAV.map((item) => {
-                    const active = location.pathname.startsWith(item.to);
-                    const Icon = item.icon;
-                    return (
-                      <DropdownMenuItem
-                        key={item.to}
-                        asChild
-                        className={active ? 'bg-accent' : ''}
-                      >
-                        <Link to={item.to}>
-                          <Icon className="mr-2 h-4 w-4" />
-                          {item.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-
-                  <DropdownMenuSeparator />
-
-                  {EXTERNAL_LINKS.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <DropdownMenuItem key={item.href} asChild>
-                        <a
-                          href={item.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Icon className="mr-2 h-4 w-4" />
-                          {item.label}
-                        </a>
-                      </DropdownMenuItem>
-                    );
-                  })}
-
-                  <DropdownMenuSeparator />
-
-                  {isOAuthLoggedIn ? (
-                    <DropdownMenuItem onSelect={handleOAuthLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {t('common:signOut')}
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onSelect={handleOpenOAuth}>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Sign in
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </div>

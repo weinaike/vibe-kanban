@@ -23,7 +23,7 @@ export function FullAttemptLogsPage() {
   }>();
 
   const { data: attempt } = useTaskAttemptWithSession(attemptId);
-  const { tasksById } = useProjectTasks(projectId);
+  const { data: { tasksById } } = useProjectTasks(projectId);
   const task = taskId ? (tasksById[taskId] ?? null) : null;
 
   return (

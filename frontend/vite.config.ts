@@ -67,7 +67,7 @@ export default defineConfig({
     allowedHosts: 'all', // 允许所有主机访问
     proxy: {
       "/api": {
-        target: `http://localhost:${process.env.BACKEND_PORT || "3001"}`,
+        target: `http://localhost:${process.env.BACKEND_PORT || "3007"}`,
         changeOrigin: true,
         ws: true,
       }

@@ -99,15 +99,7 @@ export function TaskCard({
       <div className="flex flex-col gap-2">
         <TaskCardHeader
           title={task.title}
-          avatar={
-            sharedTask
-              ? {
-                  firstName: sharedTask.assignee_first_name ?? undefined,
-                  lastName: sharedTask.assignee_last_name ?? undefined,
-                  username: sharedTask.assignee_username ?? undefined,
-                }
-              : undefined
-          }
+          avatar={undefined}
           right={
             <>
               {task.has_in_progress_attempt && (
@@ -128,7 +120,7 @@ export function TaskCard({
                   <Link className="h-4 w-4" />
                 </Button>
               )}
-              <ActionsDropdown task={task} sharedTask={sharedTask} />
+              <ActionsDropdown task={task} sharedTask={undefined} />
             </>
           }
         />

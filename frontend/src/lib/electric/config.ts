@@ -1,14 +1,8 @@
-import { oauthApi } from '../api';
-import { REMOTE_API_URL } from '@/lib/remoteApi';
+// Simplified version for local-only mode (Electric sync removed)
 
 export const createAuthenticatedShapeOptions = (table: string) => ({
-  url: `${REMOTE_API_URL}/v1/shape/${table}`,
-  headers: {
-    Authorization: async () => {
-      const tokenResponse = await oauthApi.getToken();
-      return tokenResponse ? `Bearer ${tokenResponse.access_token}` : '';
-    },
-  },
+  url: `/api/electric/shape/${table}`,
+  headers: {},
   parser: {
     timestamptz: (value: string) => value,
   },
