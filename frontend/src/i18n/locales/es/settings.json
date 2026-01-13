@@ -7,12 +7,12 @@
         "generalDesc": "Tema, notificaciones y preferencias",
         "projects": "Proyectos",
         "projectsDesc": "Scripts y configuración de proyectos",
+        "tunnels": "Túneles",
+        "tunnelsDesc": "Túneles de dispositivos para acceso remoto seguro",
         "agents": "Agentes",
         "agentsDesc": "Configuraciones de agentes",
         "mcp": "Servidores MCP",
-        "mcpDesc": "Servidores de Protocolo de Contexto de Modelo (MCP)",
-        "organizations": "Organization Settings",
-        "organizationsDesc": "Manage organization members and permissions"
+        "mcpDesc": "Servidores de Protocolo de Contexto de Modelo (MCP)"
       }
     },
     "general": {

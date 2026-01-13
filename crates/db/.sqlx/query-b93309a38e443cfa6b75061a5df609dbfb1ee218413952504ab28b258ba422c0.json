@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE devices\n               SET status = $2, last_seen = datetime('now', 'subsec')\n               WHERE id = $1\n               RETURNING id as \"id!: Uuid\",\n                         tunnel_id as \"tunnel_id!: Uuid\",\n                         owner_id as \"owner_id!: Uuid\",\n                         mac_address,\n                         name,\n                         device_type,\n                         status as \"status: DeviceStatus\",\n                         firmware_version,\n                         last_seen as \"last_seen?: DateTime<Utc>\",\n                         created_at as \"created_at!: DateTime<Utc>\",\n                         updated_at as \"updated_at!: DateTime<Utc>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "tunnel_id!: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_id!: Uuid",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "mac_address",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "device_type",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "status: DeviceStatus",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "firmware_version",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_seen?: DateTime<Utc>",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: DateTime<Utc>",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!: DateTime<Utc>",
+        "ordinal": 10,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "b93309a38e443cfa6b75061a5df609dbfb1ee218413952504ab28b258ba422c0"
+}

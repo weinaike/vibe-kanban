@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE devices\n            SET status = 'offline'\n            WHERE status = 'online'\n            AND (last_seen IS NULL OR last_seen < $1)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5123641daa3647c3f474e56d38540b6285cd917dc049b8ad199887f4cf9131c2"
+}

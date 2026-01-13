@@ -7,12 +7,12 @@
         "generalDesc": "テーマ、通知、および設定",
         "projects": "プロジェクト",
         "projectsDesc": "プロジェクトスクリプトと設定",
+        "tunnels": "トンネル",
+        "tunnelsDesc": "安全なリモートアクセスのためのデバイストンネル",
         "agents": "エージェント",
         "agentsDesc": "コーディングエージェントの設定",
         "mcp": "MCPサーバー",
-        "mcpDesc": "モデルコンテキストプロトコルサーバー",
-        "organizations": "Organization Settings",
-        "organizationsDesc": "Manage organization members and permissions"
+        "mcpDesc": "モデルコンテキストプロトコルサーバー"
       }
     },
     "general": {

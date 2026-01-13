@@ -7,12 +7,12 @@
         "generalDesc": "主题、通知和偏好设置",
         "projects": "项目",
         "projectsDesc": "项目脚本和配置",
+        "tunnels": "隧道",
+        "tunnelsDesc": "设备隧道用于安全远程访问",
         "agents": "代理",
         "agentsDesc": "编码代理配置",
         "mcp": "MCP 服务器",
-        "mcpDesc": "模型上下文协议服务器",
-        "organizations": "组织设置",
-        "organizationsDesc": "管理组织成员和权限"
+        "mcpDesc": "模型上下文协议服务器"
       }
     },
     "general": {

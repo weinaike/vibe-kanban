@@ -16,6 +16,7 @@ import {
   McpSettings,
   ProjectSettings,
   SettingsLayout,
+  TunnelSettings,
 } from '@/pages/settings/';
 import { UserSystemProvider, useUserSystem } from '@/components/ConfigProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -138,6 +139,7 @@ function AppContent() {
                   <Route index element={<Navigate to="general" replace />} />
                   <Route path="general" element={<GeneralSettings />} />
                   <Route path="projects" element={<ProjectSettings />} />
+                  <Route path="tunnels" element={<TunnelSettings />} />
                   <Route path="agents" element={<AgentSettings />} />
                   <Route path="mcp" element={<McpSettings />} />
                 </Route>

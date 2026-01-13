@@ -4,14 +4,6 @@
 
 // If you are an AI, and you absolutely have to edit this file, please confirm with the user first.
 
-export type SharedTaskResponse = { task: SharedTask, user: UserData | null, };
-
-export type AssigneesQuery = { project_id: string, };
-
-export type SharedTask = { id: string, organization_id: string, project_id: string, creator_user_id: string | null, assignee_user_id: string | null, deleted_by_user_id: string | null, title: string, description: string | null, status: TaskStatus, deleted_at: string | null, shared_at: string | null, created_at: string, updated_at: string, };
-
-export type UserData = { user_id: string, first_name: string | null, last_name: string | null, username: string | null, };
-
 export type Project = { id: string, name: string, dev_script: string | null, dev_script_working_dir: string | null, default_agent_working_dir: string | null, remote_project_id: string | null, created_at: Date, updated_at: Date, };
 
 export type CreateProject = { name: string, repositories: Array<CreateProjectRepo>, };
@@ -74,6 +66,20 @@ export type Workspace = { id: string, task_id: string, container_ref: string | n
 
 export type Session = { id: string, workspace_id: string, executor: string | null, created_at: string, updated_at: string, };
 
+export type Device = { id: string, tunnel_id: string, owner_id: string, mac_address: string, name: string, device_type: string | null, status: DeviceStatus, firmware_version: string | null, last_seen: string | null, created_at: Date, updated_at: Date, };
+
+export type DeviceStatus = "online" | "offline";
+
+export type RegisterDeviceRequest = { device_name: string, };
+
+export type RegisterDeviceResponse = { device: Device, access_url: string, gost_config: GostClientConfig, heartbeat_interval: number, };
+
+export type GostClientConfig = { server_addr: string, tunnel_id: string, local_addr: string, forwarder: string, };
+
+export type HeartbeatResponse = { status: string, last_seen: string, };
+
+export type TunnelAccessLog = { id: string, device_id: string, tunnel_id: string, accessed_by: string, ip_address: string | null, user_agent: string | null, success: boolean, created_at: Date, };
+
 export type ExecutionProcess = { id: string, session_id: string, run_reason: ExecutionProcessRunReason, executor_action: ExecutorAction, status: ExecutionProcessStatus, exit_code: bigint | null, 
 /**
  * dropped: true if this process is excluded from the current
@@ -118,65 +124,7 @@ export type DiffChangeKind = "added" | "deleted" | "modified" | "renamed" | "cop
 
 export type ApiResponse<T, E = T> = { success: boolean, data: T | null, error_data: E | null, message: string | null, };
 
-export type LoginStatus = { "status": "loggedout" } | { "status": "loggedin", profile: ProfileResponse, };
-
-export type ProfileResponse = { user_id: string, username: string | null, email: string, providers: Array<ProviderProfile>, };
-
-export type ProviderProfile = { provider: string, username: string | null, display_name: string | null, email: string | null, avatar_url: string | null, };
-
-export type StatusResponse = { logged_in: boolean, profile: ProfileResponse | null, degraded: boolean | null, };
-
-export enum MemberRole { ADMIN = "ADMIN", MEMBER = "MEMBER" }
-
-export enum InvitationStatus { PENDING = "PENDING", ACCEPTED = "ACCEPTED", DECLINED = "DECLINED", EXPIRED = "EXPIRED" }
-
-export type Organization = { id: string, name: string, slug: string, is_personal: boolean, created_at: string, updated_at: string, };
-
-export type OrganizationWithRole = { id: string, name: string, slug: string, is_personal: boolean, created_at: string, updated_at: string, user_role: MemberRole, };
-
-export type ListOrganizationsResponse = { organizations: Array<OrganizationWithRole>, };
-
-export type GetOrganizationResponse = { organization: Organization, user_role: string, };
-
-export type CreateOrganizationRequest = { name: string, slug: string, };
-
-export type CreateOrganizationResponse = { organization: OrganizationWithRole, };
-
-export type UpdateOrganizationRequest = { name: string, };
-
-export type Invitation = { id: string, organization_id: string, invited_by_user_id: string | null, email: string, role: MemberRole, status: InvitationStatus, token: string, created_at: string, expires_at: string, };
-
-export type CreateInvitationRequest = { email: string, role: MemberRole, };
-
-export type CreateInvitationResponse = { invitation: Invitation, };
-
-export type ListInvitationsResponse = { invitations: Array<Invitation>, };
-
-export type GetInvitationResponse = { id: string, organization_slug: string, role: MemberRole, expires_at: string, };
-
-export type AcceptInvitationResponse = { organization_id: string, organization_slug: string, role: MemberRole, };
-
-export type RevokeInvitationRequest = { invitation_id: string, };
-
-export type OrganizationMember = { user_id: string, role: MemberRole, joined_at: string, };
-
-export type OrganizationMemberWithProfile = { user_id: string, role: MemberRole, joined_at: string, first_name: string | null, last_name: string | null, username: string | null, email: string | null, avatar_url: string | null, };
-
-export type ListMembersResponse = { members: Array<OrganizationMemberWithProfile>, };
-
-export type UpdateMemberRoleRequest = { role: MemberRole, };
-
-export type UpdateMemberRoleResponse = { user_id: string, role: MemberRole, };
-
-export type RemoteProject = { id: string, organization_id: string, name: string, metadata: Record<string, unknown>, created_at: string, };
-
 export type ListProjectsResponse = { projects: Array<RemoteProject>, };
-
-export type RemoteProjectMembersResponse = { organization_id: string, members: Array<OrganizationMemberWithProfile>, };
-
-export type CreateRemoteProjectRequest = { organization_id: string, name: string, };
-
-export type LinkToExistingRequest = { remote_project_id: string, };
 
 export type RegisterRepoRequest = { path: string, display_name: string | null, };
 
@@ -184,9 +132,7 @@ export type InitRepoRequest = { parent_path: string, folder_name: string, };
 
 export type TagSearchParams = { search: string | null, };
 
-export type TokenResponse = { access_token: string, expires_at: string | null, };
-
-export type UserSystemInfo = { config: Config, analytics_user_id: string, login_status: LoginStatus, environment: Environment, 
+export type UserSystemInfo = { config: Config, analytics_user_id: string, environment: Environment, 
 /**
  * Capabilities supported per executor (e.g., { "CLAUDE_CODE": ["SESSION_FORK"] })
  */
@@ -206,9 +152,19 @@ export type CheckEditorAvailabilityResponse = { available: boolean, };
 
 export type CheckAgentAvailabilityQuery = { executor: BaseCodingAgent, };
 
-export type CurrentUserResponse = { user_id: string, };
-
 export type CreateFollowUpAttempt = { prompt: string, variant: string | null, retry_process_id: string | null, force_when_dirty: boolean | null, perform_git_reset: boolean | null, };
+
+export type HandoffInitRequest = { provider: string, return_to: string | null, };
+
+export type HandoffInitResponse = { handoff_id: string, authorize_url: string, };
+
+export type HandoffCallbackParams = { code: string | null, state: string | null, error: string | null, error_description: string | null, };
+
+export type AuthStatusResponse = { is_signed_in: boolean, user_id: string | null, display_name: string | null, email: string | null, };
+
+export type TokenResponse = { access_token: string, refresh_token: string | null, token_type: string, expires_in: bigint | null, };
+
+export type CurrentUserResponse = { id: string, name: string, display_name: string, email: string | null, avatar: string | null, };
 
 export type ChangeTargetBranchRequest = { repo_id: string, new_target_branch: string, };
 
@@ -225,10 +181,6 @@ export type RenameBranchResponse = { branch: string, };
 export type OpenEditorRequest = { editor_type: string | null, file_path: string | null, };
 
 export type OpenEditorResponse = { url: string | null, };
-
-export type AssignSharedTaskRequest = { new_assignee_user_id: string | null, };
-
-export type ShareTaskResponse = { shared_task_id: string, };
 
 export type CreateAndStartTaskRequest = { task: CreateTask, executor_profile_id: ExecutorProfileId, repos: Array<WorkspaceRepoInput>, };
 
@@ -284,6 +236,12 @@ export type GetPrCommentsError = { "type": "no_pr_attached" } | { "type": "githu
 
 export type GetPrCommentsQuery = { repo_id: string, };
 
+export type DeviceListQuery = { 
+/**
+ * Filter by status: "online" or "offline"
+ */
+status: string | null, };
+
 export type UnifiedPrComment = { "comment_type": "general", id: string, author: string, author_association: string, body: string, created_at: string, url: string, } | { "comment_type": "review", id: bigint, author: string, author_association: string, body: string, created_at: string, url: string, path: string, line: bigint | null, diff_hunk: string, };
 
 export type RepoBranchStatus = { repo_id: string, repo_name: string, commits_behind: number | null, commits_ahead: number | null, has_uncommitted_changes: boolean | null, head_oid: string | null, uncommitted_count: number | null, untracked_count: number | null, target_branch_name: string, remote_commits_behind: number | null, remote_commits_ahead: number | null, merges: Array<Merge>, 
@@ -327,8 +285,6 @@ export type UiLanguage = "BROWSER" | "EN" | "JA" | "ES" | "KO" | "ZH_HANS" | "ZH
 export type ShowcaseState = { seen_features: Array<string>, };
 
 export type GitBranch = { name: string, is_current: boolean, is_remote: boolean, last_commit_date: Date, };
-
-export type SharedTaskDetails = { id: string, project_id: string, title: string, description: string | null, status: TaskStatus, };
 
 export type QueuedMessage = { 
 /**

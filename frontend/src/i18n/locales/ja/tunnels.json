@@ -1,0 +1,37 @@
+{
+  "title": "トンネル管理",
+  "description": "セキュアトンネルを通じてアクセス可能なデバイスを登録・管理",
+  "devices": {
+    "title": "マイデバイス",
+    "description": "デバイスを登録してリモートアクセス用のセキュアトンネルを作成",
+    "none": "まだデバイスが登録されていません。上のボタンをクリックして最初のデバイスを登録してください。",
+    "status": {
+      "online": "オンライン",
+      "offline": "オフライン"
+    },
+    "macAddress": "MACアドレス",
+    "deviceType": "タイプ",
+    "firmwareVersion": "ファームウェア",
+    "tunnelId": "トンネルID",
+    "accessUrl": "アクセスURL",
+    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
+    "accessUrlHelper": "アクセストークン付きのこのURLを使用して、トンネルを通じてデバイスに接続します。"
+  },
+  "register": {
+    "title": "新しいデバイスを登録",
+    "description": "デバイスを登録してリモートアクセス用のセキュアトンネルを作成",
+    "nameLabel": "デバイス名",
+    "namePlaceholder": "マイRaspberry Pi",
+    "macAddressLabel": "MACアドレス",
+    "macAddressPlaceholder": "00:11:22:33:44:55",
+    "localPortLabel": "ローカルポート",
+    "deviceTypeLabel": "デバイスタイプ（オプション）",
+    "deviceTypePlaceholder": "Raspberry Pi、NASなど",
+    "firmwareVersionLabel": "ファームウェアバージョン（オプション）",
+    "firmwareVersionPlaceholder": "v1.0.0"
+  },
+  "delete": {
+    "title": "デバイスを削除",
+    "description": "{{name}} を削除してもよろしいですか？この操作は取り消せません。"
+  }
+}

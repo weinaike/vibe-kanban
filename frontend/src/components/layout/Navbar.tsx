@@ -7,6 +7,9 @@ import {
   BookOpen,
   MessageCircleQuestion,
   Plus,
+  LogIn,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { SearchBar } from '@/components/SearchBar';
@@ -16,6 +19,7 @@ import { useProject } from '@/contexts/ProjectContext';
 import { useOpenProjectInEditor } from '@/hooks/useOpenProjectInEditor';
 import { OpenInIdeButton } from '@/components/ide/OpenInIdeButton';
 import { useProjectRepos } from '@/hooks';
+import { useAuth } from '@/hooks/auth/useAuth';
 
 const INTERNAL_NAV = [
   { label: 'Projects', icon: FolderOpen, to: '/projects' },
@@ -50,6 +54,7 @@ export function Navbar() {
   const { projectId, project } = useProject();
   const { query, setQuery, active, clear, registerInputRef } = useSearch();
   const handleOpenInEditor = useOpenProjectInEditor(project || null);
+  const { isSignedIn, user, login, logout } = useAuth();
 
   const { data: repos } = useProjectRepos(projectId);
   const isSingleRepoProject = repos?.length === 1;
@@ -174,6 +179,29 @@ export function Navbar() {
                   {SETTINGS_NAV.label}
                 </Link>
               </Button>
+
+              {/* Auth Button */}
+              {isSignedIn ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  className="gap-2"
+                >
+                  {user?.display_name || user?.name || <User className="h-4 w-4" />}
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={login}
+                  className="gap-2"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              )}
             </div>
           </div>
         </div>

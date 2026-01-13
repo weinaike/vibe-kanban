@@ -53,7 +53,7 @@ import {
   RunAgentSetupResponse,
   GhCliSetupError,
   RunScriptError,
-  StatusResponse,
+  AuthStatusResponse,
   ListOrganizationsResponse,
   OrganizationMemberWithProfile,
   ListMembersResponse,
@@ -1084,24 +1084,19 @@ export const oauthApi = {
     );
   },
 
-  status: async (): Promise<StatusResponse> => {
+  status: async (): Promise<AuthStatusResponse> => {
     const response = await makeRequest('/api/auth/status', {
       cache: 'no-store',
     });
-    return handleApiResponse<StatusResponse>(response);
+    return handleApiResponse<AuthStatusResponse>(response);
   },
 
-  logout: async (): Promise<void> => {
+  logout: async (accessToken?: string): Promise<{ logout_url: string }> => {
     const response = await makeRequest('/api/auth/logout', {
       method: 'POST',
+      body: JSON.stringify({ access_token: accessToken }),
     });
-    if (!response.ok) {
-      throw new ApiError(
-        `Logout failed with status ${response.status}`,
-        response.status,
-        response
-      );
-    }
+    return handleApiResponse<{ logout_url: string }>(response);
   },
 
   /** Returns the current access token for the remote server (auto-refreshes if needed) */

@@ -83,6 +83,28 @@ async function verifyPorts(ports) {
  * Allocate ports for development
  */
 async function allocatePorts() {
+  // If FRONTEND_PORT or BACKEND_PORT env is set, use them (highest priority)
+  if (process.env.FRONTEND_PORT || process.env.BACKEND_PORT) {
+    const frontendPort = process.env.FRONTEND_PORT ? parseInt(process.env.FRONTEND_PORT, 10) : await findFreePort(3000);
+    const backendPort = process.env.BACKEND_PORT ? parseInt(process.env.BACKEND_PORT, 10) : await findFreePort(frontendPort + 1);
+
+    const ports = {
+      frontend: frontendPort,
+      backend: backendPort,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (process.argv[2] === "get") {
+      console.log("Using environment variables:");
+      console.log(`Frontend: ${ports.frontend}`);
+      console.log(`Backend: ${ports.backend}`);
+    }
+
+    // Save the ports so they persist
+    savePorts(ports);
+    return ports;
+  }
+
   // If PORT env is set, use it for frontend and PORT+1 for backend
   if (process.env.PORT) {
     const frontendPort = parseInt(process.env.PORT, 10);
@@ -100,6 +122,7 @@ async function allocatePorts() {
       console.log(`Backend: ${ports.backend}`);
     }
 
+    savePorts(ports);
     return ports;
   }
 

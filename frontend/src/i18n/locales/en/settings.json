@@ -7,12 +7,12 @@
         "generalDesc": "Theme, notifications, and preferences",
         "projects": "Projects",
         "projectsDesc": "Project scripts and configuration",
+        "tunnels": "Tunnels",
+        "tunnelsDesc": "Device tunnels for secure remote access",
         "agents": "Agents",
         "agentsDesc": "Coding agent configurations",
         "mcp": "MCP Servers",
-        "mcpDesc": "Model Context Protocol servers",
-        "organizations": "Organization Settings",
-        "organizationsDesc": "Manage organization members and permissions"
+        "mcpDesc": "Model Context Protocol servers"
       }
     },
     "general": {

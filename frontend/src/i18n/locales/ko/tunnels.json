@@ -1,0 +1,37 @@
+{
+  "title": "터널 관리",
+  "description": "보안 터널을 통해 액세스할 수 있는 장치를 등록 및 관리",
+  "devices": {
+    "title": "내 장치",
+    "description": "장치를 등록하여 원격 액세스용 보안 터널 생성",
+    "none": "등록된 장치가 없습니다. 위 버튼을 클릭하여 첫 번째 장치를 등록하세요.",
+    "status": {
+      "online": "온라인",
+      "offline": "오프라인"
+    },
+    "macAddress": "MAC 주소",
+    "deviceType": "유형",
+    "firmwareVersion": "펌웨어",
+    "tunnelId": "터널 ID",
+    "accessUrl": "액세스 URL",
+    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
+    "accessUrlHelper": "액세스 토큰이 포함된 이 URL을 사용하여 터널을 통해 장치에 연결합니다."
+  },
+  "register": {
+    "title": "새 장치 등록",
+    "description": "장치를 등록하여 원격 액세스용 보안 터널 생성",
+    "nameLabel": "장치 이름",
+    "namePlaceholder": "내 라즈베리 파이",
+    "macAddressLabel": "MAC 주소",
+    "macAddressPlaceholder": "00:11:22:33:44:55",
+    "localPortLabel": "로컬 포트",
+    "deviceTypeLabel": "장치 유형(선택 사항)",
+    "deviceTypePlaceholder": "라즈베리 파이, NAS 등",
+    "firmwareVersionLabel": "펌웨어 버전(선택 사항)",
+    "firmwareVersionPlaceholder": "v1.0.0"
+  },
+  "delete": {
+    "title": "장치 삭제",
+    "description": "{{name}}을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."
+  }
+}

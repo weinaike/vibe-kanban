@@ -1,0 +1,37 @@
+{
+  "title": "Tunnel Building",
+  "description": "Register and manage devices that can be accessed through secure tunnels",
+  "devices": {
+    "title": "My Devices",
+    "description": "Register devices to create secure tunnels for remote access",
+    "none": "No devices registered yet. Click the button above to register your first device.",
+    "status": {
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "macAddress": "MAC Address",
+    "deviceType": "Type",
+    "firmwareVersion": "Firmware",
+    "tunnelId": "Tunnel ID",
+    "accessUrl": "Access URL",
+    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
+    "accessUrlHelper": "Use this URL with the access token to connect to your device through the tunnel."
+  },
+  "register": {
+    "title": "Register New Device",
+    "description": "Register a device to create a secure tunnel for remote access",
+    "nameLabel": "Device Name",
+    "namePlaceholder": "My Raspberry Pi",
+    "macAddressLabel": "MAC Address",
+    "macAddressPlaceholder": "00:11:22:33:44:55",
+    "localPortLabel": "Local Port",
+    "deviceTypeLabel": "Device Type (Optional)",
+    "deviceTypePlaceholder": "Raspberry Pi, NAS, etc.",
+    "firmwareVersionLabel": "Firmware Version (Optional)",
+    "firmwareVersionPlaceholder": "v1.0.0"
+  },
+  "delete": {
+    "title": "Delete Device",
+    "description": "Are you sure you want to delete {{name}}? This action cannot be undone."
+  }
+}

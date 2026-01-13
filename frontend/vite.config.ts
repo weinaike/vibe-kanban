@@ -63,13 +63,22 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0', // 允许远程访问
-    port: parseInt(process.env.FRONTEND_PORT || "3000"),
-    allowedHosts: 'all', // 允许所有主机访问
+    port: parseInt(process.env.FRONTEND_PORT || "23001"),
+    allowedHosts: ['all', 'ziso.yes-tek.com', '.yes-tek.com', 'localhost'], // 允许所有主机访问
     proxy: {
       "/api": {
-        target: `http://localhost:${process.env.BACKEND_PORT || "3007"}`,
+        target: `http://127.0.0.1:${process.env.BACKEND_PORT || "23002"}`,
         changeOrigin: true,
         ws: true,
+        // 确保代理所有请求
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Proxying:', req.method, req.url, '->', proxyReq.getHeader('host'));
+          });
+        },
       }
     },
     fs: {

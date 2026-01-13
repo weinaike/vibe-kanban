@@ -7,12 +7,12 @@
         "generalDesc": "테마, 알림 및 환경설정",
         "projects": "프로젝트",
         "projectsDesc": "프로젝트 스크립트 및 구성",
+        "tunnels": "터널",
+        "tunnelsDesc": "보안 원격 액세스를 위한 장치 터널",
         "agents": "에이전트",
         "agentsDesc": "코딩 에이전트 구성",
         "mcp": "MCP 서버",
-        "mcpDesc": "Model Context Protocol 서버",
-        "organizations": "Organization Settings",
-        "organizationsDesc": "Manage organization members and permissions"
+        "mcpDesc": "Model Context Protocol 서버"
       }
     },
     "general": {

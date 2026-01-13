@@ -1,0 +1,37 @@
+{
+  "title": "Gestión de Túneles",
+  "description": "Registra y administra dispositivos accesibles a través de túneles seguros",
+  "devices": {
+    "title": "Mis Dispositivos",
+    "description": "Registra dispositivos para crear túneles seguros para acceso remoto",
+    "none": "No hay dispositivos registrados aún. Haz clic en el botón de arriba para registrar tu primer dispositivo.",
+    "status": {
+      "online": "En línea",
+      "offline": "Fuera de línea"
+    },
+    "macAddress": "Dirección MAC",
+    "deviceType": "Tipo",
+    "firmwareVersion": "Firmware",
+    "tunnelId": "ID del Túnel",
+    "accessUrl": "URL de Acceso",
+    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
+    "accessUrlHelper": "Usa esta URL con el token de acceso para conectar a tu dispositivo a través del túnel."
+  },
+  "register": {
+    "title": "Registrar Nuevo Dispositivo",
+    "description": "Registra un dispositivo para crear un túnel seguro para acceso remoto",
+    "nameLabel": "Nombre del Dispositivo",
+    "namePlaceholder": "Mi Raspberry Pi",
+    "macAddressLabel": "Dirección MAC",
+    "macAddressPlaceholder": "00:11:22:33:44:55",
+    "localPortLabel": "Puerto Local",
+    "deviceTypeLabel": "Tipo de Dispositivo (Opcional)",
+    "deviceTypePlaceholder": "Raspberry Pi, NAS, etc.",
+    "firmwareVersionLabel": "Versión de Firmware (Opcional)",
+    "firmwareVersionPlaceholder": "v1.0.0"
+  },
+  "delete": {
+    "title": "Eliminar Dispositivo",
+    "description": "¿Estás seguro de que quieres eliminar {{name}}? Esta acción no se puede deshacer."
+  }
+}
