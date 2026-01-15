@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id as \"id!: Uuid\",\n                      owner_id as \"owner_id!: Uuid\",\n                      mac_address,\n                      name,\n                      device_type,\n                      status as \"status: DeviceStatus\",\n                      firmware_version,\n                      last_seen as \"last_seen?: DateTime<Utc>\",\n                      service_port as \"service_port!: i64\",\n                      gost_process_id,\n                      tunnel_id,\n                      created_at as \"created_at!: DateTime<Utc>\",\n                      updated_at as \"updated_at!: DateTime<Utc>\"\n               FROM devices\n               WHERE owner_id = $1\n               ORDER BY created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_id!: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "mac_address",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "device_type",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "status: DeviceStatus",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "firmware_version",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_seen?: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "service_port!: i64",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "gost_process_id",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "tunnel_id",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: DateTime<Utc>",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!: DateTime<Utc>",
+        "ordinal": 12,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e7d55fd98dcc552c0713fb02397ef51ed9c651abf30a90bc688416693fa869b2"
+}

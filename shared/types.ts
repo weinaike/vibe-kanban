@@ -66,19 +66,29 @@ export type Workspace = { id: string, task_id: string, container_ref: string | n
 
 export type Session = { id: string, workspace_id: string, executor: string | null, created_at: string, updated_at: string, };
 
-export type Device = { id: string, tunnel_id: string, owner_id: string, mac_address: string, name: string, device_type: string | null, status: DeviceStatus, firmware_version: string | null, last_seen: string | null, created_at: Date, updated_at: Date, };
+export type Device = { id: string, owner_id: string, mac_address: string, name: string, device_type: string | null, status: DeviceStatus, firmware_version: string | null, last_seen: string | null, 
+/**
+ * Port where the vibe-kanban service runs
+ */
+service_port: bigint, 
+/**
+ * GOST process PID (single process for all tunnel types)
+ */
+gost_process_id: bigint | null, 
+/**
+ * Tunnel ID from Gateway API for GOST v3 restart functionality
+ */
+tunnel_id: string | null, created_at: Date, updated_at: Date, };
 
 export type DeviceStatus = "online" | "offline";
 
-export type RegisterDeviceRequest = { device_name: string, };
+export type RegisterDeviceRequest = { device_name: string, service_port: bigint | null, };
 
-export type RegisterDeviceResponse = { device: Device, access_url: string, gost_config: GostClientConfig, heartbeat_interval: number, };
-
-export type GostClientConfig = { server_addr: string, tunnel_id: string, local_addr: string, forwarder: string, };
+export type RegisterDeviceResponse = { device: Device, };
 
 export type HeartbeatResponse = { status: string, last_seen: string, };
 
-export type TunnelAccessLog = { id: string, device_id: string, tunnel_id: string, accessed_by: string, ip_address: string | null, user_agent: string | null, success: boolean, created_at: Date, };
+export type TunnelAccessLog = { id: string, device_id: string, accessed_by: string, ip_address: string | null, user_agent: string | null, success: boolean, created_at: Date, };
 
 export type ExecutionProcess = { id: string, session_id: string, run_reason: ExecutionProcessRunReason, executor_action: ExecutorAction, status: ExecutionProcessStatus, exit_code: bigint | null, 
 /**

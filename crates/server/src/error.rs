@@ -80,6 +80,12 @@ impl From<&'static str> for ApiError {
     }
 }
 
+impl From<String> for ApiError {
+    fn from(msg: String) -> Self {
+        ApiError::BadRequest(msg)
+    }
+}
+
 impl From<Git2Error> for ApiError {
     fn from(err: Git2Error) -> Self {
         ApiError::GitService(GitServiceError::from(err))

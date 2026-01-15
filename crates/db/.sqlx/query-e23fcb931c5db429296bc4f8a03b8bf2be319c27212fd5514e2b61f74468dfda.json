@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO devices (\n                    id, owner_id, mac_address, name,\n                    device_type, firmware_version, service_port\n                ) VALUES ($1, $2, $3, $4, $5, $6, $7)\n                RETURNING id as \"id!: Uuid\",\n                          owner_id as \"owner_id!: Uuid\",\n                          mac_address,\n                          name,\n                          device_type,\n                          status as \"status: DeviceStatus\",\n                          firmware_version,\n                          last_seen as \"last_seen?: DateTime<Utc>\",\n                          service_port,\n                          gost_process_id,\n                          tunnel_id,\n                          created_at as \"created_at!: DateTime<Utc>\",\n                          updated_at as \"updated_at!: DateTime<Utc>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_id!: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "mac_address",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "device_type",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "status: DeviceStatus",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "firmware_version",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_seen?: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "service_port",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "gost_process_id",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "tunnel_id",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: DateTime<Utc>",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!: DateTime<Utc>",
+        "ordinal": 12,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e23fcb931c5db429296bc4f8a03b8bf2be319c27212fd5514e2b61f74468dfda"
+}

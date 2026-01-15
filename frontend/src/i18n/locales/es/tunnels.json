@@ -1,6 +1,12 @@
 {
   "title": "Gestión de Túneles",
   "description": "Registra y administra dispositivos accesibles a través de túneles seguros",
+  "status": {
+    "running": "Ejecutándose",
+    "stopped": "Detenido"
+  },
+  "start": "Iniciar",
+  "stop": "Detener",
   "devices": {
     "title": "Mis Dispositivos",
     "description": "Registra dispositivos para crear túneles seguros para acceso remoto",
@@ -9,26 +15,18 @@
       "online": "En línea",
       "offline": "Fuera de línea"
     },
-    "macAddress": "Dirección MAC",
-    "deviceType": "Tipo",
-    "firmwareVersion": "Firmware",
-    "tunnelId": "ID del Túnel",
-    "accessUrl": "URL de Acceso",
-    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
-    "accessUrlHelper": "Usa esta URL con el token de acceso para conectar a tu dispositivo a través del túnel."
+    "deviceId": "ID del Dispositivo",
+    "servicePort": "Puerto de Servicio",
+    "gostProcess": "Proceso GOST"
   },
   "register": {
     "title": "Registrar Nuevo Dispositivo",
-    "description": "Registra un dispositivo para crear un túnel seguro para acceso remoto",
+    "description": "Registra un dispositivo para crear un túnel seguro para acceso remoto usando GOST v3",
     "nameLabel": "Nombre del Dispositivo",
     "namePlaceholder": "Mi Raspberry Pi",
-    "macAddressLabel": "Dirección MAC",
-    "macAddressPlaceholder": "00:11:22:33:44:55",
-    "localPortLabel": "Puerto Local",
-    "deviceTypeLabel": "Tipo de Dispositivo (Opcional)",
-    "deviceTypePlaceholder": "Raspberry Pi, NAS, etc.",
-    "firmwareVersionLabel": "Versión de Firmware (Opcional)",
-    "firmwareVersionPlaceholder": "v1.0.0"
+    "portLabel": "Puerto de Servicio",
+    "portPlaceholder": "23001",
+    "portHint": "El puerto donde se ejecuta tu servicio vibe-kanban. El valor predeterminado es 23001."
   },
   "delete": {
     "title": "Eliminar Dispositivo",

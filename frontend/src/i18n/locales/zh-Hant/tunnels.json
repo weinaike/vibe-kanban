@@ -1,6 +1,12 @@
 {
   "title": "隧道管理",
   "description": "註冊和管理可透過安全隧道存取的裝置",
+  "status": {
+    "running": "運行中",
+    "stopped": "已停止"
+  },
+  "start": "啟動",
+  "stop": "停止",
   "devices": {
     "title": "我的裝置",
     "description": "註冊裝置以建立安全隧道進行遠端存取",
@@ -9,26 +15,18 @@
       "online": "線上",
       "offline": "離線"
     },
-    "macAddress": "MAC 位址",
-    "deviceType": "類型",
-    "firmwareVersion": "韌體",
-    "tunnelId": "隧道 ID",
-    "accessUrl": "存取網址",
-    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
-    "accessUrlHelper": "使用帶有存取權杖的此 URL 透過隧道連線到您的裝置。"
+    "deviceId": "裝置 ID",
+    "servicePort": "服務連接埠",
+    "gostProcess": "GOST 進程"
   },
   "register": {
     "title": "註冊新裝置",
-    "description": "註冊裝置以建立用於遠端存取的安全隧道",
+    "description": "註冊裝置以使用 GOST v3 建立用於遠端存取的安全隧道",
     "nameLabel": "裝置名稱",
     "namePlaceholder": "我的樹莓派",
-    "macAddressLabel": "MAC 位址",
-    "macAddressPlaceholder": "00:11:22:33:44:55",
-    "localPortLabel": "本地連接埠",
-    "deviceTypeLabel": "裝置類型（選填）",
-    "deviceTypePlaceholder": "樹莓派、NAS 等",
-    "firmwareVersionLabel": "韌體版本（選填）",
-    "firmwareVersionPlaceholder": "v1.0.0"
+    "portLabel": "服務連接埠",
+    "portPlaceholder": "23001",
+    "portHint": "您的 vibe-kanban 服務運行的連接埠。預設為 23001。"
   },
   "delete": {
     "title": "刪除裝置",

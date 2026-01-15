@@ -1,6 +1,12 @@
 {
   "title": "Tunnel Building",
   "description": "Register and manage devices that can be accessed through secure tunnels",
+  "status": {
+    "running": "Running",
+    "stopped": "Stopped"
+  },
+  "start": "Start",
+  "stop": "Stop",
   "devices": {
     "title": "My Devices",
     "description": "Register devices to create secure tunnels for remote access",
@@ -9,26 +15,18 @@
       "online": "Online",
       "offline": "Offline"
     },
-    "macAddress": "MAC Address",
-    "deviceType": "Type",
-    "firmwareVersion": "Firmware",
-    "tunnelId": "Tunnel ID",
-    "accessUrl": "Access URL",
-    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
-    "accessUrlHelper": "Use this URL with the access token to connect to your device through the tunnel."
+    "deviceId": "Device ID",
+    "servicePort": "Service Port",
+    "gostProcess": "GOST Process"
   },
   "register": {
     "title": "Register New Device",
-    "description": "Register a device to create a secure tunnel for remote access",
+    "description": "Register a device to create a secure tunnel for remote access using GOST v3",
     "nameLabel": "Device Name",
     "namePlaceholder": "My Raspberry Pi",
-    "macAddressLabel": "MAC Address",
-    "macAddressPlaceholder": "00:11:22:33:44:55",
-    "localPortLabel": "Local Port",
-    "deviceTypeLabel": "Device Type (Optional)",
-    "deviceTypePlaceholder": "Raspberry Pi, NAS, etc.",
-    "firmwareVersionLabel": "Firmware Version (Optional)",
-    "firmwareVersionPlaceholder": "v1.0.0"
+    "portLabel": "Service Port",
+    "portPlaceholder": "23001",
+    "portHint": "The port where your vibe-kanban service is running. Default is 23001."
   },
   "delete": {
     "title": "Delete Device",

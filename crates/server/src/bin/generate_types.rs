@@ -46,7 +46,6 @@ fn generate_types_content() -> String {
         db::models::device::DeviceStatus::decl(),
         db::models::device::RegisterDeviceRequest::decl(),
         db::models::device::RegisterDeviceResponse::decl(),
-        db::models::device::GostClientConfig::decl(),
         db::models::device::HeartbeatResponse::decl(),
         db::models::device::TunnelAccessLog::decl(),
         db::models::execution_process::ExecutionProcess::decl(),

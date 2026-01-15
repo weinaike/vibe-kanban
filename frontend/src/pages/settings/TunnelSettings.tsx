@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/auth/useAuth';
 import {
@@ -21,26 +21,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, Trash2, Copy, Check } from 'lucide-react';
+import { Loader2, Trash2, Copy, Check, Power, PowerOff, Server, Cpu, Globe } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Device } from 'shared/types';
+import type { Device, RegisterDeviceResponse } from 'shared/types';
+import { makeRequest, handleApiResponse } from '@/lib/api';
 
-// Generate random MAC address
-function generateMACAddress(): string {
-  const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
-  return `${hex()}:${hex()}:${hex()}:${hex()}:${hex()}:${hex()}`.toUpperCase();
-}
-
-// Simplified request type
+// Simplified request type matching Rust RegisterDeviceRequest
 interface RegisterDeviceRequest {
   device_name: string;
-}
-
-// Simplified response type
-interface DeviceRegisterResponse {
-  device_id: string;
-  access_url: string;
-  tunnel_id: string;
+  service_port?: number;
 }
 
 export function TunnelSettings() {
@@ -68,6 +57,20 @@ export function TunnelSettings() {
     },
   });
 
+  const stopDevice = useMutation({
+    mutationFn: (deviceId: string) => tunnelsApi.stopDevice(deviceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tunnels', 'devices'] });
+    },
+  });
+
+  const startDevice = useMutation({
+    mutationFn: (deviceId: string) => tunnelsApi.startDevice(deviceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tunnels', 'devices'] });
+    },
+  });
+
   const copyToClipboard = async (text: string, id: string) => {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -87,6 +90,50 @@ export function TunnelSettings() {
       setRegisterDialogOpen(true);
     }
   };
+
+  const handleStopDevice = (deviceId: string) => {
+    stopDevice.mutate(deviceId);
+  };
+
+  const handleStartDevice = (deviceId: string) => {
+    startDevice.mutate(deviceId);
+  };
+
+  // Automatic heartbeat mechanism for running devices
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    // Send heartbeat for each running device
+    const sendHeartbeats = async () => {
+      const runningDevices = devices?.filter(
+        (device) => device.gost_process_id !== null
+      ) || [];
+
+      for (const device of runningDevices) {
+        try {
+          await tunnelsApi.heartbeat(device.id);
+        } catch (error) {
+          // Silently fail - heartbeat failures are logged by backend
+          console.debug(`Heartbeat failed for device ${device.id}:`, error);
+        }
+      }
+    };
+
+    // Send initial heartbeat
+    sendHeartbeats();
+
+    // Set up interval (30 seconds, well under the 90-second timeout)
+    heartbeatIntervalRef.current = setInterval(() => {
+      sendHeartbeats();
+    }, 30000);
+
+    // Cleanup on unmount
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+    };
+  }, [devices]);
 
   if (isLoading) {
     return (
@@ -122,63 +169,135 @@ export function TunnelSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {devices?.map((device) => (
-              <Card key={device.id}>
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{device.name}</h4>
-                        <Badge
-                          variant={device.status === 'online' ? 'default' : 'secondary'}
-                          className={
-                            device.status === 'online'
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
-                              : ''
-                          }
-                        >
-                          {device.status === 'online' ? t('tunnels:devices.status.online') : t('tunnels:devices.status.offline')}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">{t('tunnels:devices.accessUrl')}</Label>
-                        <div className="flex gap-2">
-                          <code className="flex-1 bg-muted px-3 py-2 rounded text-sm overflow-hidden text-ellipsis">
-                            {window.location.origin}/api/tunnels/device?t={device.tunnel_id}
-                          </code>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(device.tunnel_id, device.id)}
-                          >
-                            {copiedId === device.id ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
+              <div
+                key={device.id}
+                className="group relative rounded-lg border bg-card p-4 hover:bg-accent/50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  {/* Device Icon & Status */}
+                  <div className="flex-shrink-0">
+                    <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${
+                      device.gost_process_id !== null
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                    }`}>
+                      <Server className="h-6 w-6" />
                     </div>
+                  </div>
+
+                  {/* Device Info */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-semibold text-base truncate">{device.name}</h4>
+                      <Badge
+                        variant={device.status === 'online' ? 'default' : 'secondary'}
+                        className={
+                          device.status === 'online'
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                        }
+                      >
+                        <div className="h-2 w-2 rounded-full mr-1.5 bg-current" />
+                        {device.status === 'online' ? t('tunnels:devices.status.online') : t('tunnels:devices.status.offline')}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        <Globe className="h-3 w-3 mr-1" />
+                        {Number(device.service_port) || 23001}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Cpu className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-mono text-xs truncate">{device.id}</span>
+                      </div>
+                      {device.gost_process_id !== null && (
+                        <div className="flex items-center gap-1.5">
+                          <Power className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-xs">PID: {Number(device.gost_process_id)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8"
+                      onClick={() => copyToClipboard(device.id, device.id)}
+                      title={t('tunnels:devices.deviceId')}
+                    >
+                      {copiedId === device.id ? (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+
+                    {device.gost_process_id !== null ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3"
+                        onClick={() => handleStopDevice(device.id)}
+                        disabled={stopDevice.isPending}
+                      >
+                        {stopDevice.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <PowerOff className="h-4 w-4 mr-1.5" />
+                            {t('tunnels:stop')}
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 px-3"
+                        onClick={() => handleStartDevice(device.id)}
+                        disabled={startDevice.isPending}
+                      >
+                        {startDevice.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Power className="h-4 w-4 mr-1.5" />
+                            {t('tunnels:start')}
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => {
                         setDeviceToDelete(device);
                         setDeleteDialogOpen(true);
                       }}
+                      title={t('common:buttons.delete')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
 
             {devices?.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                {t('tunnels:devices.none')}
+              <div className="text-center py-16">
+                <Server className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground">{t('tunnels:devices.none')}</p>
               </div>
             )}
           </div>
@@ -241,6 +360,7 @@ function RegisterDeviceDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const { t } = useTranslation(['tunnels', 'common']);
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
+  const [servicePort, setServicePort] = useState<string>('');
 
   const register = useMutation({
     mutationFn: (data: RegisterDeviceRequest) => tunnelsApi.registerDevice(data),
@@ -248,12 +368,16 @@ function RegisterDeviceDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       queryClient.invalidateQueries({ queryKey: ['tunnels', 'devices'] });
       onOpenChange(false);
       setName('');
+      setServicePort('');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    register.mutate({ device_name: name });
+    register.mutate({
+      device_name: name,
+      service_port: servicePort ? parseInt(servicePort, 10) : undefined,
+    });
   };
 
   return (
@@ -276,6 +400,21 @@ function RegisterDeviceDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 autoFocus
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="service-port">{t('tunnels:register.portLabel')}</Label>
+              <Input
+                id="service-port"
+                type="number"
+                min="1"
+                max="65535"
+                value={servicePort}
+                onChange={(e) => setServicePort(e.target.value)}
+                placeholder={t('tunnels:register.portPlaceholder')}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('tunnels:register.portHint')}
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -292,39 +431,51 @@ function RegisterDeviceDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   );
 }
 
+// Local API endpoints (vibe-kanban backend)
 const tunnelsApi = {
   listDevices: async (): Promise<Device[]> => {
-    const response = await fetch('/api/tunnels/devices');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch devices: ${response.statusText}`);
-    }
-    const result = await response.json();
-    return result.data;
+    const response = await makeRequest('/api/tunnels/devices');
+    return handleApiResponse<Device[]>(response);
   },
 
-  registerDevice: async (data: RegisterDeviceRequest): Promise<DeviceRegisterResponse> => {
-    // Generate MAC address on client side
-    const payload = {
-      mac_address: generateMACAddress(),
-      device_name: data.device_name,
-    };
-    const response = await fetch('/api/tunnels/devices', {
+  getDevice: async (deviceId: string): Promise<Device> => {
+    const response = await makeRequest(`/api/tunnels/devices/${deviceId}`);
+    return handleApiResponse<Device>(response);
+  },
+
+  registerDevice: async (data: RegisterDeviceRequest): Promise<RegisterDeviceResponse> => {
+    const response = await makeRequest('/api/tunnels/devices', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Failed to register device: ${response.statusText}`);
-    }
-    return await response.json();
+    return handleApiResponse<RegisterDeviceResponse>(response);
   },
 
-  deleteDevice: async (deviceId: string) => {
-    const response = await fetch(`/api/tunnels/devices/${deviceId}`, {
+  deleteDevice: async (deviceId: string): Promise<void> => {
+    const response = await makeRequest(`/api/tunnels/devices/${deviceId}`, {
       method: 'DELETE',
     });
-    if (!response.ok) {
-      throw new Error(`Failed to delete device: ${response.statusText}`);
-    }
+    return handleApiResponse<void>(response);
+  },
+
+  startDevice: async (deviceId: string): Promise<void> => {
+    const response = await makeRequest(`/api/tunnels/devices/${deviceId}/start`, {
+      method: 'POST',
+    });
+    return handleApiResponse<void>(response);
+  },
+
+  stopDevice: async (deviceId: string): Promise<void> => {
+    const response = await makeRequest(`/api/tunnels/devices/${deviceId}/stop`, {
+      method: 'POST',
+    });
+    return handleApiResponse<void>(response);
+  },
+
+  heartbeat: async (deviceId: string): Promise<void> => {
+    const response = await makeRequest(`/api/tunnels/devices/${deviceId}/heartbeat`, {
+      method: 'POST',
+    });
+    return handleApiResponse<void>(response);
   },
 };

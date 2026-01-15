@@ -111,10 +111,17 @@ export class ApiError<E = unknown> extends Error {
   }
 }
 
-const makeRequest = async (url: string, options: RequestInit = {}) => {
+export const makeRequest = async (url: string, options: RequestInit = {}) => {
   const headers = new Headers(options.headers ?? {});
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  // Add Authorization header if access token is available
+  const TOKEN_STORAGE_KEY = 'casdoor_access_token';
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   return fetch(url, {

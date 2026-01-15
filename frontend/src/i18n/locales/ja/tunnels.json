@@ -1,6 +1,12 @@
 {
   "title": "トンネル管理",
   "description": "セキュアトンネルを通じてアクセス可能なデバイスを登録・管理",
+  "status": {
+    "running": "実行中",
+    "stopped": "停止中"
+  },
+  "start": "開始",
+  "stop": "停止",
   "devices": {
     "title": "マイデバイス",
     "description": "デバイスを登録してリモートアクセス用のセキュアトンネルを作成",
@@ -9,26 +15,18 @@
       "online": "オンライン",
       "offline": "オフライン"
     },
-    "macAddress": "MACアドレス",
-    "deviceType": "タイプ",
-    "firmwareVersion": "ファームウェア",
-    "tunnelId": "トンネルID",
-    "accessUrl": "アクセスURL",
-    "accessUrlPlaceholder": "http://localhost:3000/api/tunnels/device?t={{tunnelId}}",
-    "accessUrlHelper": "アクセストークン付きのこのURLを使用して、トンネルを通じてデバイスに接続します。"
+    "deviceId": "デバイスID",
+    "servicePort": "サービスポート",
+    "gostProcess": "GOSTプロセス"
   },
   "register": {
     "title": "新しいデバイスを登録",
-    "description": "デバイスを登録してリモートアクセス用のセキュアトンネルを作成",
+    "description": "デバイスを登録してGOST v3を使用してリモートアクセス用のセキュアトンネルを作成",
     "nameLabel": "デバイス名",
     "namePlaceholder": "マイRaspberry Pi",
-    "macAddressLabel": "MACアドレス",
-    "macAddressPlaceholder": "00:11:22:33:44:55",
-    "localPortLabel": "ローカルポート",
-    "deviceTypeLabel": "デバイスタイプ（オプション）",
-    "deviceTypePlaceholder": "Raspberry Pi、NASなど",
-    "firmwareVersionLabel": "ファームウェアバージョン（オプション）",
-    "firmwareVersionPlaceholder": "v1.0.0"
+    "portLabel": "サービスポート",
+    "portPlaceholder": "23001",
+    "portHint": "vibe-kanbanサービスが実行されているポート。デフォルトは23001です。"
   },
   "delete": {
     "title": "デバイスを削除",

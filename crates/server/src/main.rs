@@ -1,4 +1,5 @@
 use anyhow::{self, Error as AnyhowError};
+use db::models::device::Device;
 use deployment::{Deployment, DeploymentError};
 use server::{DeploymentImpl, routes};
 use services::services::container::ContainerService;
@@ -75,6 +76,29 @@ async fn main() -> Result<(), VibeKanbanError> {
             .await
         {
             tracing::warn!("Failed to warm file search cache: {}", e);
+        }
+    });
+
+    // Start offline checker background task
+    let deployment_for_offline_check = deployment.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+        loop {
+            interval.tick().await;
+            // Mark devices offline if not seen for 90 seconds
+            match Device::mark_offline_devices(
+                &deployment_for_offline_check.db().pool,
+                90
+            ).await {
+                Ok(count) => {
+                    if count > 0 {
+                        tracing::info!("Marked {} devices as offline", count);
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to check offline devices: {}", e);
+                }
+            }
         }
     });
 

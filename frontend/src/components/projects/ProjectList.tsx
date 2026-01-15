@@ -72,7 +72,7 @@ export function ProjectList() {
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {t('loading')}
+          {t('common:states.loading')}
         </div>
       ) : projects.length === 0 ? (
         <Card>

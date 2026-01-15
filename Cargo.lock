@@ -2577,6 +2577,21 @@ dependencies = [
 
 [[package]]
 name = "jsonwebtoken"
+version = "9.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
+dependencies = [
+ "base64",
+ "js-sys",
+ "pem",
+ "ring",
+ "serde",
+ "serde_json",
+ "simple_asn1",
+]
+
+[[package]]
+name = "jsonwebtoken"
 version = "10.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c76e1c7d7df3e34443b3621b459b066a7b79644f059fc8b2db7070c825fd417e"
@@ -2826,6 +2841,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mac_address"
+version = "1.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0aeb26bf5e836cc1c341c8106051b573f1766dfa05aa87f0b98be5e51b02303"
+dependencies = [
+ "nix 0.29.0",
+ "winapi",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3006,6 +3031,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+ "memoffset",
 ]
 
 [[package]]
@@ -4519,6 +4545,7 @@ version = "0.0.143"
 dependencies = [
  "anyhow",
  "axum",
+ "base64",
  "chrono",
  "db",
  "deployment",
@@ -4527,7 +4554,9 @@ dependencies = [
  "futures-util",
  "git2",
  "ignore",
+ "jsonwebtoken 9.3.1",
  "local-deployment",
+ "mac_address",
  "mime_guess",
  "nix 0.29.0",
  "openssl-sys",
@@ -5752,7 +5781,7 @@ dependencies = [
  "futures-util",
  "git2",
  "json-patch",
- "jsonwebtoken",
+ "jsonwebtoken 10.2.0",
  "open",
  "regex",
  "reqwest",

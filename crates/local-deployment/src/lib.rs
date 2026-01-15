@@ -219,3 +219,10 @@ impl Deployment for LocalDeployment {
         &self.auth_context
     }
 }
+
+impl LocalDeployment {
+    /// Get database pool for direct access
+    pub fn pool(&self) -> &sqlx::SqlitePool {
+        &self.db.pool
+    }
+}

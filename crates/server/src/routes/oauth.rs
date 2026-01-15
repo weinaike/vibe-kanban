@@ -1,6 +1,7 @@
 use axum::{
     Json, Router,
     extract::{Query, State},
+    http::HeaderMap,
     response::{IntoResponse, Redirect},
     routing::{get, post},
 };
@@ -11,7 +12,7 @@ use tokio::sync::RwLock;
 use ts_rs::TS;
 use utils::{response::ApiResponse};
 
-use crate::DeploymentImpl;
+use crate::{DeploymentImpl, middleware::auth::validate_jwt_token};
 
 // Global in-memory store for processed OAuth states
 static PROCESSED_STATES: tokio::sync::OnceCell<Arc<RwLock<HashSet<String>>>> = tokio::sync::OnceCell::const_new();
@@ -186,15 +187,38 @@ async fn handoff_complete(
 }
 
 /// Get authentication status
-async fn auth_status() -> Json<ApiResponse<AuthStatusResponse>> {
-    // TODO: Implement session storage and token validation
-    // For now, return not signed in
-    Json(ApiResponse::success(AuthStatusResponse {
-        is_signed_in: false,
-        user_id: None,
-        display_name: None,
-        email: None,
-    }))
+async fn auth_status(headers: HeaderMap) -> Json<ApiResponse<AuthStatusResponse>> {
+    // Try to extract and validate the JWT token from Authorization header
+    let auth_header = headers.get("Authorization");
+    let is_signed_in = auth_header.is_some();
+
+    if !is_signed_in {
+        return Json(ApiResponse::success(AuthStatusResponse {
+            is_signed_in: false,
+            user_id: None,
+            display_name: None,
+            email: None,
+        }));
+    }
+
+    // Validate the token
+    match auth_header.and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+        .map(|t| validate_jwt_token(t))
+    {
+        Some(Ok(claims)) => Json(ApiResponse::success(AuthStatusResponse {
+            is_signed_in: true,
+            user_id: Some(claims.sub.clone()),
+            display_name: claims.name.clone(),
+            email: claims.email.clone(),
+        })),
+        _ => Json(ApiResponse::success(AuthStatusResponse {
+            is_signed_in: false,
+            user_id: None,
+            display_name: None,
+            email: None,
+        })),
+    }
 }
 
 /// Logout request body with access token
@@ -239,15 +263,64 @@ pub struct LogoutResponse {
 }
 
 /// Get current access token
-async fn get_token() -> Json<ApiResponse<Option<TokenResponse>>> {
-    // TODO: Implement token retrieval from session
-    Json(ApiResponse::success(None))
+async fn get_token(headers: HeaderMap) -> Json<ApiResponse<Option<TokenResponse>>> {
+    // Extract token from Authorization header
+    let auth_header = match headers.get("Authorization") {
+        Some(h) => h,
+        None => return Json(ApiResponse::success(None)),
+    };
+
+    let token_str = match auth_header.to_str() {
+        Ok(s) => s,
+        Err(_) => return Json(ApiResponse::success(None)),
+    };
+
+    let token = match token_str.strip_prefix("Bearer ") {
+        Some(t) => t,
+        None => return Json(ApiResponse::success(None)),
+    };
+
+    // Validate the token and return response
+    match validate_jwt_token(token) {
+        Ok(_) => Json(ApiResponse::success(Some(TokenResponse {
+            access_token: token.to_string(),
+            refresh_token: None,
+            token_type: "Bearer".to_string(),
+            expires_in: None,
+        }))),
+        Err(_) => Json(ApiResponse::success(None)),
+    }
 }
 
 /// Get current user info
-async fn get_user() -> Json<ApiResponse<Option<CurrentUserResponse>>> {
-    // TODO: Implement user info retrieval from session
-    Json(ApiResponse::success(None))
+async fn get_user(headers: HeaderMap) -> Json<ApiResponse<Option<CurrentUserResponse>>> {
+    // Extract token from Authorization header
+    let auth_header = match headers.get("Authorization") {
+        Some(h) => h,
+        None => return Json(ApiResponse::success(None)),
+    };
+
+    let token_str = match auth_header.to_str() {
+        Ok(s) => s,
+        Err(_) => return Json(ApiResponse::success(None)),
+    };
+
+    let token = match token_str.strip_prefix("Bearer ") {
+        Some(t) => t,
+        None => return Json(ApiResponse::success(None)),
+    };
+
+    // Validate the token and extract user info
+    match validate_jwt_token(token) {
+        Ok(claims) => Json(ApiResponse::success(Some(CurrentUserResponse {
+            id: claims.sub.clone(),
+            name: claims.name.clone().unwrap_or_else(|| claims.sub.clone()),
+            display_name: claims.name.clone().unwrap_or_default(),
+            email: claims.email.clone(),
+            avatar: None,
+        }))),
+        Err(_) => Json(ApiResponse::success(None)),
+    }
 }
 
 /// Exchange authorization code for access token
@@ -300,7 +373,7 @@ async fn exchange_code_for_token(
 /// Get the callback URL based on environment
 fn get_callback_url() -> String {
     std::env::var("OAUTH_CALLBACK_URL")
-        .unwrap_or_else(|_| "http://ziso.yes-tek.com/api/auth/handoff/complete".to_string())
+        .unwrap_or_else(|_| "https://ziso.yes-tek.com/api/auth/handoff/complete".to_string())
 }
 
 /// Simple percent encoding for URL parameters

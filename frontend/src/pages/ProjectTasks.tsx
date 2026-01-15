@@ -698,7 +698,7 @@ export function ProjectTasks() {
   }
 
   if (projectLoading && isInitialTasksLoad) {
-    return <Loader message={t('loading')} size={32} className="py-8" />;
+    return <Loader message={t('common:states.loading')} size={32} className="py-8" />;
   }
 
   const truncateTitle = (title: string | undefined, maxLength = 20) => {
