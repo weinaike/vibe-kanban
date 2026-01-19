@@ -44,6 +44,8 @@ fn generate_types_content() -> String {
         db::models::session::Session::decl(),
         db::models::device::Device::decl(),
         db::models::device::DeviceStatus::decl(),
+        server::routes::tunnels::DeviceSource::decl(),
+        server::routes::tunnels::MergedDevice::decl(),
         db::models::device::RegisterDeviceRequest::decl(),
         db::models::device::RegisterDeviceResponse::decl(),
         db::models::device::HeartbeatResponse::decl(),

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/auth/useAuth';
+import { toast } from 'sonner';
 import {
   Card,
   CardContent,
@@ -23,13 +24,39 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2, Trash2, Copy, Check, Power, PowerOff, Server, Cpu, Globe } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Device, RegisterDeviceResponse } from 'shared/types';
+import type { MergedDevice, DeviceSource, RegisterDeviceResponse } from 'shared/types';
 import { makeRequest, handleApiResponse } from '@/lib/api';
 
 // Simplified request type matching Rust RegisterDeviceRequest
 interface RegisterDeviceRequest {
   device_name: string;
   service_port?: number;
+}
+
+// Helper function to get display text for device source
+function getDeviceSourceDisplay(source: DeviceSource): { label: string; className: string } {
+  switch (source) {
+    case 'Local':
+      return {
+        label: 'Local',
+        className: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400',
+      };
+    case 'Gateway':
+      return {
+        label: 'Gateway',
+        className: 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400',
+      };
+    case 'Merged':
+      return {
+        label: 'Merged',
+        className: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400',
+      };
+    default:
+      return {
+        label: 'Unknown',
+        className: 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-900/30 dark:text-gray-400',
+      };
+  }
 }
 
 export function TunnelSettings() {
@@ -40,12 +67,13 @@ export function TunnelSettings() {
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [loginRequiredDialogOpen, setLoginRequiredDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState<Device | null>(null);
+  const [deviceToDelete, setDeviceToDelete] = useState<MergedDevice | null>(null);
 
-  const { data: devices, isLoading, error } = useQuery<Device[]>({
+  const { data: devices, isLoading, error } = useQuery<MergedDevice[]>({
     queryKey: ['tunnels', 'devices'],
     queryFn: () => tunnelsApi.listDevices(),
     refetchInterval: 30000,
+    enabled: isSignedIn, // Only fetch devices when user is logged in
   });
 
   const deleteDevice = useMutation({
@@ -54,6 +82,10 @@ export function TunnelSettings() {
       queryClient.invalidateQueries({ queryKey: ['tunnels', 'devices'] });
       setDeleteDialogOpen(false);
       setDeviceToDelete(null);
+      toast.success(t('tunnels:delete.success'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('tunnels:delete.error', { message: error.message }));
     },
   });
 
@@ -61,6 +93,10 @@ export function TunnelSettings() {
     mutationFn: (deviceId: string) => tunnelsApi.stopDevice(deviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tunnels', 'devices'] });
+      toast.success(t('tunnels:stop.success'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('tunnels:stop.error', { message: error.message }));
     },
   });
 
@@ -68,6 +104,10 @@ export function TunnelSettings() {
     mutationFn: (deviceId: string) => tunnelsApi.startDevice(deviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tunnels', 'devices'] });
+      toast.success(t('tunnels:start.success'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('tunnels:start.error', { message: error.message }));
     },
   });
 
@@ -101,6 +141,12 @@ export function TunnelSettings() {
 
   // Automatic heartbeat mechanism for running devices
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isSignedInRef = useRef(isSignedIn);
+
+  // Keep ref in sync with isSignedIn
+  useEffect(() => {
+    isSignedInRef.current = isSignedIn;
+  }, [isSignedIn]);
 
   useEffect(() => {
     // Send heartbeat for each running device
@@ -134,6 +180,25 @@ export function TunnelSettings() {
       }
     };
   }, [devices]);
+
+  // Stop all running tunnels when user logs out
+  useEffect(() => {
+    if (!isSignedIn && devices && devices.length > 0) {
+      const runningDevices = devices.filter(
+        (device) => device.gost_process_id !== null
+      );
+
+      // Stop all running devices
+      runningDevices.forEach((device) => {
+        tunnelsApi.stopDevice(device.id).catch((error) => {
+          console.debug(`Failed to stop device ${device.id} on logout:`, error);
+        });
+      });
+
+      // Clear the devices data
+      queryClient.setQueryData(['tunnels', 'devices'], []);
+    }
+  }, [isSignedIn, devices, queryClient]);
 
   if (isLoading) {
     return (
@@ -173,52 +238,59 @@ export function TunnelSettings() {
             {devices?.map((device) => (
               <div
                 key={device.id}
-                className="group relative rounded-lg border bg-card p-4 hover:bg-accent/50 transition-colors"
+                className="group relative rounded-lg border bg-card p-3 sm:p-4 hover:bg-accent/50 transition-colors"
               >
-                <div className="flex items-center gap-4">
+                {/* Mobile: Vertical layout, Desktop: Horizontal layout */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   {/* Device Icon & Status */}
-                  <div className="flex-shrink-0">
-                    <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${
+                  <div className="flex-shrink-0 flex items-center gap-3">
+                    <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center ${
                       device.gost_process_id !== null
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                         : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                     }`}>
-                      <Server className="h-6 w-6" />
+                      <Server className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   </div>
 
                   {/* Device Info */}
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h4 className="font-semibold text-base truncate">{device.name}</h4>
+                  <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-semibold text-sm sm:text-base truncate">{device.name}</h4>
                       <Badge
                         variant={device.status === 'online' ? 'default' : 'secondary'}
                         className={
                           device.status === 'online'
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 text-xs'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 text-xs'
                         }
                       >
-                        <div className="h-2 w-2 rounded-full mr-1.5 bg-current" />
+                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full mr-1 bg-current" />
                         {device.status === 'online' ? t('tunnels:devices.status.online') : t('tunnels:devices.status.offline')}
                       </Badge>
                       <Badge
                         variant="outline"
                         className="text-xs"
                       >
-                        <Globe className="h-3 w-3 mr-1" />
+                        <Globe className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                         {Number(device.service_port) || 23001}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${getDeviceSourceDisplay(device.source).className}`}
+                      >
+                        {getDeviceSourceDisplay(device.source).label}
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Cpu className="h-4 w-4 flex-shrink-0" />
+                    <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1 min-w-0 flex-1 sm:flex-none">
+                        <Cpu className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                         <span className="font-mono text-xs truncate">{device.id}</span>
                       </div>
                       {device.gost_process_id !== null && (
-                        <div className="flex items-center gap-1.5">
-                          <Power className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <div className="flex items-center gap-1">
+                          <Power className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
                           <span className="text-xs">PID: {Number(device.gost_process_id)}</span>
                         </div>
                       )}
@@ -226,13 +298,14 @@ export function TunnelSettings() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center justify-end gap-1 sm:gap-2 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 sm:h-8 sm:w-8"
                       onClick={() => copyToClipboard(device.id, device.id)}
                       title={t('tunnels:devices.deviceId')}
+                      aria-label={t('tunnels:devices.deviceId')}
                     >
                       {copiedId === device.id ? (
                         <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -244,34 +317,36 @@ export function TunnelSettings() {
                     {device.gost_process_id !== null ? (
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="h-8 px-3"
+                        size="icon"
+                        className="h-8 w-8 sm:h-8 sm:px-3 sm:w-auto"
                         onClick={() => handleStopDevice(device.id)}
                         disabled={stopDevice.isPending}
+                        aria-label={t('tunnels:stopLabel')}
                       >
                         {stopDevice.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            <PowerOff className="h-4 w-4 mr-1.5" />
-                            {t('tunnels:stop')}
+                            <PowerOff className="h-4 w-4 sm:mr-1.5" />
+                            <span className="hidden sm:inline">{t('tunnels:stopLabel')}</span>
                           </>
                         )}
                       </Button>
                     ) : (
                       <Button
                         variant="default"
-                        size="sm"
-                        className="h-8 px-3"
+                        size="icon"
+                        className="h-8 w-8 sm:h-8 sm:px-3 sm:w-auto"
                         onClick={() => handleStartDevice(device.id)}
                         disabled={startDevice.isPending}
+                        aria-label={t('tunnels:startLabel')}
                       >
                         {startDevice.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            <Power className="h-4 w-4 mr-1.5" />
-                            {t('tunnels:start')}
+                            <Power className="h-4 w-4 sm:mr-1.5" />
+                            <span className="hidden sm:inline">{t('tunnels:startLabel')}</span>
                           </>
                         )}
                       </Button>
@@ -280,12 +355,13 @@ export function TunnelSettings() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="h-8 w-8 sm:h-8 sm:w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => {
                         setDeviceToDelete(device);
                         setDeleteDialogOpen(true);
                       }}
                       title={t('common:buttons.delete')}
+                      aria-label={t('common:buttons.delete')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -369,6 +445,10 @@ function RegisterDeviceDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       onOpenChange(false);
       setName('');
       setServicePort('');
+      toast.success(t('tunnels:register.success'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('tunnels:register.error', { message: error.message }));
     },
   });
 
@@ -433,14 +513,14 @@ function RegisterDeviceDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
 // Local API endpoints (vibe-kanban backend)
 const tunnelsApi = {
-  listDevices: async (): Promise<Device[]> => {
+  listDevices: async (): Promise<MergedDevice[]> => {
     const response = await makeRequest('/api/tunnels/devices');
-    return handleApiResponse<Device[]>(response);
+    return handleApiResponse<MergedDevice[]>(response);
   },
 
-  getDevice: async (deviceId: string): Promise<Device> => {
+  getDevice: async (deviceId: string): Promise<MergedDevice> => {
     const response = await makeRequest(`/api/tunnels/devices/${deviceId}`);
-    return handleApiResponse<Device>(response);
+    return handleApiResponse<MergedDevice>(response);
   },
 
   registerDevice: async (data: RegisterDeviceRequest): Promise<RegisterDeviceResponse> => {

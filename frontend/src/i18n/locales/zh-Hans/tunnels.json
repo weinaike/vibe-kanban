@@ -5,8 +5,8 @@
     "running": "运行中",
     "stopped": "已停止"
   },
-  "start": "启动",
-  "stop": "停止",
+  "startLabel": "启动",
+  "stopLabel": "停止",
   "devices": {
     "title": "我的设备",
     "description": "注册设备以创建安全隧道进行远程访问",
@@ -26,10 +26,22 @@
     "namePlaceholder": "我的树莓派",
     "portLabel": "服务端口",
     "portPlaceholder": "23001",
-    "portHint": "您的 vibe-kanban 服务运行的端口。默认为 23001。"
+    "portHint": "您的 vibe-kanban 服务运行的端口。默认为 23001。",
+    "success": "设备注册成功",
+    "error": "设备注册失败：{{message}}"
+  },
+  "start": {
+    "success": "设备启动成功",
+    "error": "设备启动失败：{{message}}"
+  },
+  "stop": {
+    "success": "设备停止成功",
+    "error": "设备停止失败：{{message}}"
   },
   "delete": {
     "title": "删除设备",
-    "description": "您确定要删除 {{name}} 吗？此操作无法撤销。"
+    "description": "您确定要删除 {{name}} 吗？此操作无法撤销。",
+    "success": "设备删除成功",
+    "error": "设备删除失败：{{message}}"
   }
 }

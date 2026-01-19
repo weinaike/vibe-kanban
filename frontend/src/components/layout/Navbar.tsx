@@ -20,6 +20,7 @@ import { useOpenProjectInEditor } from '@/hooks/useOpenProjectInEditor';
 import { OpenInIdeButton } from '@/components/ide/OpenInIdeButton';
 import { useProjectRepos } from '@/hooks';
 import { useAuth } from '@/hooks/auth/useAuth';
+import { isLocalOrLanAccess } from '@/lib/accessControl';
 
 const INTERNAL_NAV = [
   { label: 'Projects', icon: FolderOpen, to: '/projects' },
@@ -130,34 +131,37 @@ export function Navbar() {
                   <Button
                     key={item.to}
                     variant="ghost"
-                    size="sm"
+                    className={`[&_a]:flex [&_a]:items-center [&_a]:justify-center [&_a]:gap-2 h-9 w-9 sm:h-auto sm:w-auto sm:[&]:px-3 sm:[&]:py-1.5 ${active ? 'bg-accent' : ''}`}
                     asChild
-                    className={active ? 'bg-accent' : ''}
+                    aria-label={item.label}
                   >
-                    <Link to={item.to}>
-                      <Icon className="mr-2 h-4 w-4" />
-                      {item.label}
+                    <Link to={item.to} className="sm:flex sm:items-center sm:justify-center sm:gap-2">
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline">{item.label}</span>
                     </Link>
                   </Button>
                 );
               })}
 
+              {/* External links (Docs, Support) - hidden on mobile */}
               {EXTERNAL_LINKS.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Button
                     key={item.href}
                     variant="ghost"
-                    size="sm"
+                    className="hidden sm:[&_a]:flex [&_a]:items-center [&_a]:justify-center [&_a]:gap-2 h-9 w-9 sm:h-auto sm:w-auto sm:[&]:px-3 sm:[&]:py-1.5"
                     asChild
+                    aria-label={item.label}
                   >
                     <a
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="sm:flex sm:items-center sm:justify-center sm:gap-2 hidden sm:flex"
                     >
-                      <Icon className="mr-2 h-4 w-4" />
-                      {item.label}
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="hidden sm:inline">{item.label}</span>
                     </a>
                   </Button>
                 );
@@ -165,8 +169,9 @@ export function Navbar() {
 
               <Button
                 variant="ghost"
-                size="sm"
+                className="[&_a]:flex [&_a]:items-center [&_a]:justify-center [&_a]:gap-2 h-9 w-9 sm:h-auto sm:w-auto sm:[&]:px-3 sm:[&]:py-1.5"
                 asChild
+                aria-label={SETTINGS_NAV.label}
               >
                 <Link
                   to={
@@ -174,9 +179,10 @@ export function Navbar() {
                       ? `/settings/projects?projectId=${projectId}`
                       : SETTINGS_NAV.to
                   }
+                  className="sm:flex sm:items-center sm:justify-center sm:gap-2"
                 >
-                  <Settings className="mr-2 h-4 w-4" />
-                  {SETTINGS_NAV.label}
+                  <Settings className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{SETTINGS_NAV.label}</span>
                 </Link>
               </Button>
 
@@ -184,24 +190,27 @@ export function Navbar() {
               {isSignedIn ? (
                 <Button
                   variant="ghost"
-                  size="sm"
+                  className="flex items-center justify-center gap-2 h-9 w-9 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                   onClick={logout}
-                  className="gap-2"
+                  aria-label="Logout"
                 >
-                  {user?.display_name || user?.name || <User className="h-4 w-4" />}
-                  <LogOut className="h-4 w-4" />
+                  <User className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">
+                    {user?.display_name || user?.name}
+                  </span>
+                  <LogOut className="h-4 w-4 shrink-0 hidden sm:inline" />
                 </Button>
-              ) : (
+              ) : isLocalOrLanAccess() ? (
                 <Button
                   variant="ghost"
-                  size="sm"
+                  className="flex items-center justify-center gap-2 h-9 w-9 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                   onClick={login}
-                  className="gap-2"
+                  aria-label="Login"
                 >
-                  <LogIn className="h-4 w-4" />
-                  Login
+                  <LogIn className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Login</span>
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

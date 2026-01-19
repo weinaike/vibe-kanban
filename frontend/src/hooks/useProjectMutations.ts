@@ -4,9 +4,15 @@ import type {
   CreateProject,
   UpdateProject,
   Project,
+} from 'shared/types';
+
+// Import the types from shared/types
+import type {
   LinkToExistingRequest,
   CreateRemoteProjectRequest,
 } from 'shared/types';
+
+// Note: Local definitions removed - now using shared types
 
 interface UseProjectMutationsOptions {
   onCreateSuccess?: (project: Project) => void;

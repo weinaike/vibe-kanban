@@ -1084,7 +1084,11 @@ export const oauthApi = {
   ): Promise<{ handoff_id: string; authorize_url: string }> => {
     const response = await makeRequest('/api/auth/handoff/init', {
       method: 'POST',
-      body: JSON.stringify({ provider, return_to: returnTo }),
+      body: JSON.stringify({
+        provider,
+        return_to: returnTo,
+        origin: window.location.origin, // Pass current browser origin
+      }),
     });
     return handleApiResponse<{ handoff_id: string; authorize_url: string }>(
       response
@@ -1101,7 +1105,10 @@ export const oauthApi = {
   logout: async (accessToken?: string): Promise<{ logout_url: string }> => {
     const response = await makeRequest('/api/auth/logout', {
       method: 'POST',
-      body: JSON.stringify({ access_token: accessToken }),
+      body: JSON.stringify({
+        access_token: accessToken,
+        origin: window.location.origin, // Pass current browser origin
+      }),
     });
     return handleApiResponse<{ logout_url: string }>(response);
   },

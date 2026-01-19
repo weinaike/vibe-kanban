@@ -4565,6 +4565,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rmcp",
+ "rsa",
  "rust-embed",
  "schemars 1.0.4",
  "secrecy",

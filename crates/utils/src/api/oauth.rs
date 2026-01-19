@@ -46,6 +46,7 @@ pub struct TokenRefreshResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
+#[ts(export)]
 pub struct ProviderProfile {
     pub provider: String,
     pub username: Option<String>,

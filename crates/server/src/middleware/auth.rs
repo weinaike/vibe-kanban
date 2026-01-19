@@ -6,9 +6,77 @@ use axum::{
 };
 use jsonwebtoken::{decode, decode_header, DecodingKey, Validation, Algorithm};
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::error::ApiError;
+
+/// Cached JWKS key with expiration
+#[derive(Clone)]
+struct CachedJwksKey {
+    decoding_key: DecodingKey,
+    expires_at: Instant,
+}
+
+/// Global JWKS cache
+struct JwksCache {
+    keys: RwLock<std::collections::HashMap<String, CachedJwksKey>>,
+}
+
+impl JwksCache {
+    fn new() -> Self {
+        Self {
+            keys: RwLock::new(std::collections::HashMap::new()),
+        }
+    }
+
+    /// Get a decoding key from cache or fetch from JWKS endpoint
+    async fn get_decoding_key(&self, kid: &str) -> Result<DecodingKey, ApiError> {
+        // Check cache first
+        {
+            let cache = self.keys.read().await;
+            if let Some(cached) = cache.get(kid) {
+                if cached.expires_at > Instant::now() {
+                    tracing::debug!("Using cached JWKS key for kid: {}", kid);
+                    return Ok(cached.decoding_key.clone());
+                }
+            }
+        }
+
+        // Cache miss or expired, fetch from JWKS endpoint
+        tracing::debug!("Fetching JWKS key for kid: {}", kid);
+        let decoding_key = fetch_decoding_key_from_jwks(kid).await?;
+
+        // Cache the key for 1 hour
+        let cached = CachedJwksKey {
+            decoding_key: decoding_key.clone(),
+            expires_at: Instant::now() + Duration::from_secs(3600),
+        };
+
+        {
+            let mut cache = self.keys.write().await;
+            cache.insert(kid.to_string(), cached);
+        }
+
+        Ok(decoding_key)
+    }
+
+    /// Clear the cache (useful for testing or force refresh)
+    async fn clear(&self) {
+        let mut cache = self.keys.write().await;
+        cache.clear();
+    }
+}
+
+/// Global JWKS cache instance
+static JWKS_CACHE: OnceLock<JwksCache> = OnceLock::new();
+
+/// Get the global JWKS cache instance
+fn get_jwks_cache() -> &'static JwksCache {
+    JWKS_CACHE.get_or_init(|| JwksCache::new())
+}
 
 /// JWT Claims structure
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -62,10 +130,10 @@ fn get_jwt_secret() -> String {
     })
 }
 
-/// Validate JWT token and extract claims
+/// Validate JWT token and extract claims (async version)
 /// Supports RS256 (Casdoor) - validates signature using JWKS
 /// Supports HS256 (custom) - validates with shared secret
-pub fn validate_jwt_token(token: &str) -> Result<Claims, ApiError> {
+pub async fn validate_jwt_token_async(token: &str) -> Result<Claims, ApiError> {
     // First, try to decode the header to determine the algorithm
     let header = decode_header(token)
         .map_err(|e| ApiError::BadRequest(format!("Invalid token header: {}", e)))?;
@@ -75,18 +143,7 @@ pub fn validate_jwt_token(token: &str) -> Result<Claims, ApiError> {
     match header.alg {
         Algorithm::RS256 => {
             // For RS256, we need to validate using JWKS
-            // Check if we're already in an async runtime context
-            if tokio::runtime::Handle::try_current().is_ok() {
-                // Already in async runtime - use insecure decode for development
-                // In production, this would need proper async middleware support
-                tracing::warn!("In async runtime context, decoding RS256 token without signature verification (NOT SECURE)");
-                return decode_rs256_insecure(token);
-            }
-
-            // Not in async runtime, can create a new one for validation
-            let rt = tokio::runtime::Runtime::new()
-                .map_err(|e| ApiError::BadRequest(format!("Failed to create runtime: {}", e)))?;
-            rt.block_on(validate_rs256_token(token, &header))
+            validate_rs256_token(token, &header).await
         }
         Algorithm::HS256 => {
             // Fallback to HS256 with shared secret
@@ -99,18 +156,38 @@ pub fn validate_jwt_token(token: &str) -> Result<Claims, ApiError> {
     }
 }
 
-/// Decode RS256 token without signature verification (INSECURE - for development only)
-fn decode_rs256_insecure(token: &str) -> Result<Claims, ApiError> {
-    use jsonwebtoken::Validation;
+/// Validate JWT token and extract claims (sync version for backward compatibility)
+/// Note: This will create a runtime if needed - prefer validate_jwt_token_async in async contexts
+pub fn validate_jwt_token(token: &str) -> Result<Claims, ApiError> {
+    // First, try to decode the header to determine the algorithm
+    let header = decode_header(token)
+        .map_err(|e| ApiError::BadRequest(format!("Invalid token header: {}", e)))?;
 
-    // Create a validation that doesn't verify the signature OR audience
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.insecure_disable_signature_validation();
-    validation.validate_aud = false;  // Disable audience validation
+    tracing::debug!("Token header: alg={:?}, kid={:?}", header.alg, header.kid);
 
-    decode::<Claims>(token, &DecodingKey::from_secret(&[]), &validation)
-        .map(|data| data.claims)
-        .map_err(|e| ApiError::BadRequest(format!("Invalid token: {}", e)))
+    match header.alg {
+        Algorithm::RS256 => {
+            // For RS256, we need to validate using JWKS
+            // Try to use existing runtime or create a new one
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                // Use the existing runtime
+                handle.block_on(validate_rs256_token(token, &header))
+            } else {
+                // Create a new runtime
+                let rt = tokio::runtime::Runtime::new()
+                    .map_err(|e| ApiError::BadRequest(format!("Failed to create runtime: {}", e)))?;
+                rt.block_on(validate_rs256_token(token, &header))
+            }
+        }
+        Algorithm::HS256 => {
+            // Fallback to HS256 with shared secret
+            validate_hs256_token(token)
+        }
+        alg => Err(ApiError::BadRequest(format!(
+            "Unsupported algorithm: {:?}. Expected RS256 or HS256",
+            alg
+        ))),
+    }
 }
 
 /// Validate RS256 token using JWKS from Casdoor
@@ -120,8 +197,11 @@ async fn validate_rs256_token(token: &str, header: &jsonwebtoken::Header) -> Res
         ApiError::BadRequest("Token header missing 'kid' claim".to_string())
     })?;
 
-    // Fetch JWKS from Casdoor to get the public key
-    let decoding_key = fetch_decoding_key_from_jwks(kid).await?;
+    // Get decoding key from cache (will fetch from JWKS if not cached)
+    let cache = get_jwks_cache();
+    let decoding_key = cache.get_decoding_key(kid).await?;
+
+    tracing::debug!("Got decoding key for kid: {}", kid);
 
     // Create validation that doesn't check audience
     let mut validation = Validation::new(Algorithm::RS256);
@@ -133,14 +213,18 @@ async fn validate_rs256_token(token: &str, header: &jsonwebtoken::Header) -> Res
         &decoding_key,
         &validation,
     )
-    .map_err(|e| ApiError::BadRequest(format!("Invalid token: {}", e)))?;
+    .map_err(|e| {
+        tracing::error!("JWT validation failed: kind={:?}, message={}", e.kind(), e);
+        ApiError::BadRequest(format!("Invalid token: {}", e))
+    })?;
 
+    tracing::debug!("JWT validated successfully for sub: {}", token_data.claims.sub);
     Ok(token_data.claims)
 }
 
 /// Fetch a specific decoding key from Casdoor JWKS by kid
 async fn fetch_decoding_key_from_jwks(kid: &str) -> Result<DecodingKey, ApiError> {
-    let jwks_url = format!("{}/.well-known/jwks.json", get_casdoor_url().trim_end_matches('/'));
+    let jwks_url = format!("{}/.well-known/jwks", get_casdoor_url().trim_end_matches('/'));
 
     tracing::debug!("Fetching JWKS from: {}", jwks_url);
 
@@ -152,9 +236,10 @@ async fn fetch_decoding_key_from_jwks(kid: &str) -> Result<DecodingKey, ApiError
         .map_err(|e| ApiError::BadRequest(format!("Failed to fetch JWKS: {}", e)))?;
 
     if !response.status().is_success() {
-        // Fallback to insecure decoding if JWKS fetch fails
-        tracing::warn!("JWKS fetch failed, using insecure decoding");
-        return Ok(DecodingKey::from_secret(&[]));
+        return Err(ApiError::BadRequest(format!(
+            "JWKS fetch failed with status: {}",
+            response.status()
+        )));
     }
 
     #[derive(Deserialize)]
@@ -190,50 +275,40 @@ async fn fetch_decoding_key_from_jwks(kid: &str) -> Result<DecodingKey, ApiError
     let e_decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(e)
         .map_err(|e| ApiError::BadRequest(format!("Invalid exponent encoding: {}", e)))?;
 
-    // Create DecodingKey from RSA components using a helper
-    // Since jsonwebtoken 9 doesn't have from_rsa_components, we need to convert to DER
-    let der = build_rsa_der(&n_decoded, &e_decoded)?;
-    Ok(DecodingKey::from_rsa_der(&der))
+    // Create DecodingKey from RSA components using the rsa crate
+    let decoding_key = build_rsa_decoding_key(&n_decoded, &e_decoded)?;
+
+    tracing::debug!("Built RSA decoding key for kid: {}", kid);
+
+    Ok(decoding_key)
 }
 
-/// Build DER-encoded RSA public key
-fn build_rsa_der(n: &[u8], e: &[u8]) -> Result<Vec<u8>, ApiError> {
-    // Manual DER encoding for RSA public key
-    // SEQUENCE { INTEGER n, INTEGER e }
-    let mut der = Vec::new();
+/// Build RSA DecodingKey from modulus and exponent bytes
+/// Uses the rsa crate to properly construct an RSA public key
+fn build_rsa_decoding_key(n: &[u8], e: &[u8]) -> Result<DecodingKey, ApiError> {
+    use rsa::{pkcs1::EncodeRsaPublicKey, RsaPublicKey};
+    use rsa::BigUint;
 
-    // Add SEQUENCE tag
-    der.push(0x30);
+    // Convert modulus bytes to BigUint (rsa crate re-exports from num_bigint_dig)
+    let modulus = BigUint::from_bytes_be(n);
 
-    // Encode INTEGER n (with leading zero if high bit is set)
-    let n_encoded = encode_integer(n);
-    let e_encoded = encode_integer(e);
+    // Convert exponent bytes to BigUint
+    // The exponent is typically small (65537 for RSA), so it's usually 1-3 bytes
+    let exponent = BigUint::from_bytes_be(e);
 
-    let total_len = n_encoded.len() + e_encoded.len();
-    der.push(total_len as u8);
-    der.extend_from_slice(&n_encoded);
-    der.extend_from_slice(&e_encoded);
+    tracing::debug!("Creating RSA public key: modulus size={} bytes, exponent bytes={}", n.len(), e.len());
 
-    Ok(der)
-}
+    // Create the RSA public key
+    let public_key = RsaPublicKey::new(modulus, exponent)
+        .map_err(|e| ApiError::BadRequest(format!("Failed to create RSA public key: {}", e)))?;
 
-/// Encode an integer in DER format
-fn encode_integer(bytes: &[u8]) -> Vec<u8> {
-    let mut result = Vec::new();
-    result.push(0x02); // INTEGER tag
+    // Convert to PKCS#1 DER encoding (requires EncodeRsaPublicKey trait in scope)
+    let der_bytes = public_key.to_pkcs1_der()
+        .map_err(|e| ApiError::BadRequest(format!("Failed to encode RSA public key: {}", e)))?;
 
-    // Add leading zero if high bit is set (to keep it positive)
-    let data = if bytes[0] & 0x80 == 0x80 {
-        let mut with_zero = vec![0u8];
-        with_zero.extend_from_slice(bytes);
-        with_zero
-    } else {
-        bytes.to_vec()
-    };
+    tracing::debug!("Created RSA DER: {} bytes", der_bytes.as_ref().len());
 
-    result.push(data.len() as u8);
-    result.extend_from_slice(&data);
-    result
+    Ok(DecodingKey::from_rsa_der(der_bytes.as_ref()))
 }
 
 /// Validate HS256 token using shared secret (fallback)
@@ -258,6 +333,19 @@ fn validate_hs256_token(token: &str) -> Result<Claims, ApiError> {
 pub fn extract_user_id_from_headers(headers: &HeaderMap) -> Result<Uuid, ApiError> {
     let token = extract_bearer_token(headers)?;
     let claims = validate_jwt_token(&token)?;
+
+    // Parse user_id from "sub" claim
+    let user_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| ApiError::BadRequest("Invalid user_id in token".to_string()))?;
+
+    Ok(user_id)
+}
+
+/// Extract user_id from Authorization header (async version - use in async contexts)
+/// This version uses validate_jwt_token_async which properly handles async JWKS fetching
+pub async fn extract_user_id_from_headers_async(headers: &HeaderMap) -> Result<Uuid, ApiError> {
+    let token = extract_bearer_token(headers)?;
+    let claims = validate_jwt_token_async(&token).await?;
 
     // Parse user_id from "sub" claim
     let user_id = Uuid::parse_str(&claims.sub)

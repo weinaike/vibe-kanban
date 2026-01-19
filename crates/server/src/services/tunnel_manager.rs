@@ -51,9 +51,9 @@ impl TunnelManager {
         let forward_addr = format!("127.0.0.1:{}", service_port);
 
         // Build GOST v3 command with tunnel protocol
-        // Format: gost -L rtcp://:0/forward_addr -F "tunnel://server_addr?tunnel.id=tunnel_id&tunnel.direct=true"
+        // Format: gost -L rtcp://:0/forward_addr -F "tunnel://server_addr?tunnel.id=tunnel_id"
         let chain = format!(
-            "tunnel://{}?tunnel.id={}&tunnel.direct=true",
+            "tunnel://{}?tunnel.id={}",
             self.gost_server_addr, tunnel_id
         );
 

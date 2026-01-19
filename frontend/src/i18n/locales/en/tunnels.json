@@ -5,8 +5,8 @@
     "running": "Running",
     "stopped": "Stopped"
   },
-  "start": "Start",
-  "stop": "Stop",
+  "startLabel": "Start",
+  "stopLabel": "Stop",
   "devices": {
     "title": "My Devices",
     "description": "Register devices to create secure tunnels for remote access",
@@ -26,10 +26,22 @@
     "namePlaceholder": "My Raspberry Pi",
     "portLabel": "Service Port",
     "portPlaceholder": "23001",
-    "portHint": "The port where your vibe-kanban service is running. Default is 23001."
+    "portHint": "The port where your vibe-kanban service is running. Default is 23001.",
+    "success": "Device registered successfully",
+    "error": "Failed to register device: {{message}}"
+  },
+  "start": {
+    "success": "Device started successfully",
+    "error": "Failed to start device: {{message}}"
+  },
+  "stop": {
+    "success": "Device stopped successfully",
+    "error": "Failed to stop device: {{message}}"
   },
   "delete": {
     "title": "Delete Device",
-    "description": "Are you sure you want to delete {{name}}? This action cannot be undone."
+    "description": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+    "success": "Device deleted successfully",
+    "error": "Failed to delete device: {{message}}"
   }
 }

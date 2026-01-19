@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useCallback, useState } from 'react';
 import { oauthApi } from '@/lib/api';
+import { isLocalOrLanAccess } from '@/lib/accessControl';
 
 interface User {
   id: string;
@@ -137,6 +138,12 @@ export function useAuth() {
   }, []);
 
   const login = useCallback(async () => {
+    // Block login if accessing from public domain (non-local/LAN)
+    if (!isLocalOrLanAccess()) {
+      console.warn('Login is only allowed from local/LAN access');
+      return;
+    }
+
     try {
       const response = await oauthApi.handoffInit('casdoor', window.location.pathname);
       // Redirect to Casdoor authorization page

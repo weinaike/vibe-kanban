@@ -82,6 +82,66 @@ tunnel_id: string | null, created_at: Date, updated_at: Date, };
 
 export type DeviceStatus = "online" | "offline";
 
+export type DeviceSource = "Local" | "Gateway" | "Merged";
+
+export type MergedDevice = { 
+/**
+ * Device ID (prioritizes local database if exists)
+ */
+id: string, 
+/**
+ * Device name (prioritizes local database if exists)
+ */
+name: string, 
+/**
+ * MAC address (used for filtering)
+ */
+mac_address: string, 
+/**
+ * Device type
+ */
+device_type: string | null, 
+/**
+ * Status (prioritizes local database's real-time status)
+ */
+status: DeviceStatus, 
+/**
+ * Service port (from local database)
+ */
+service_port: bigint | null, 
+/**
+ * GOST process ID (from local database)
+ */
+gost_process_id: bigint | null, 
+/**
+ * Tunnel ID (from local database)
+ */
+tunnel_id: string | null, 
+/**
+ * Last seen timestamp
+ */
+last_seen: string | null, 
+/**
+ * Created at timestamp
+ */
+created_at: Date, 
+/**
+ * Updated at timestamp
+ */
+updated_at: Date, 
+/**
+ * Access URL (from Gateway)
+ */
+access_url: string | null, 
+/**
+ * Data source: "local", "gateway", or "merged"
+ */
+source: DeviceSource, 
+/**
+ * Firmware version
+ */
+firmware_version: string | null, };
+
 export type RegisterDeviceRequest = { device_name: string, service_port: bigint | null, };
 
 export type RegisterDeviceResponse = { device: Device, };
@@ -164,7 +224,7 @@ export type CheckAgentAvailabilityQuery = { executor: BaseCodingAgent, };
 
 export type CreateFollowUpAttempt = { prompt: string, variant: string | null, retry_process_id: string | null, force_when_dirty: boolean | null, perform_git_reset: boolean | null, };
 
-export type HandoffInitRequest = { provider: string, return_to: string | null, };
+export type HandoffInitRequest = { provider: string, return_to: string | null, origin: string | null, };
 
 export type HandoffInitResponse = { handoff_id: string, authorize_url: string, };
 
