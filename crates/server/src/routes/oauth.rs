@@ -34,15 +34,36 @@ async fn mark_state_processed(state: &str) {
 }
 
 fn get_casdoor_url() -> String {
-    std::env::var("CASDOOR_URL").unwrap_or_else(|_| "https://auth.yes-tek.com".to_string())
+    // Priority: runtime env var > compile-time default > fallback
+    if let Ok(url) = std::env::var("CASDOOR_URL") {
+        return url;
+    }
+    if let Some(url) = option_env!("BUILD_CASDOOR_URL") {
+        return url.to_owned();
+    }
+    "https://auth.yes-tek.com".to_string()
 }
 
 fn get_client_id() -> String {
-    std::env::var("CASDOOR_CLIENT_ID").unwrap_or_else(|_| "29fce9095dee17102a87".to_string())
+    if let Ok(id) = std::env::var("CASDOOR_CLIENT_ID") {
+        return id;
+    }
+    if let Some(id) = option_env!("BUILD_CASDOOR_CLIENT_ID") {
+        return id.to_owned();
+    }
+    "29fce9095dee17102a87".to_string()
 }
 
 fn get_client_secret() -> String {
-    std::env::var("CASDOOR_CLIENT_SECRET").unwrap_or_else(|_| "".to_string())
+    if let Ok(secret) = std::env::var("CASDOOR_CLIENT_SECRET") {
+        return secret;
+    }
+    if let Some(secret) = option_env!("BUILD_CASDOOR_CLIENT_SECRET") {
+        return secret.to_owned();
+    }
+    // Client secret is required in production
+    // This empty fallback will cause auth to fail
+    String::new()
 }
 
 /// Check if a host is local/LAN address

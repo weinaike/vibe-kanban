@@ -196,6 +196,52 @@ export type ApiResponse<T, E = T> = { success: boolean, data: T | null, error_da
 
 export type ListProjectsResponse = { projects: Array<RemoteProject>, };
 
+export type RemoteProject = { id: string, organization_id: string, name: string, metadata: Record<string, unknown>, created_at: string, };
+
+export type RemoteProjectMembersResponse = { organization_id: string, members: Array<OrganizationMemberWithProfile>, };
+
+export type LinkToExistingRequest = { remote_project_id: string, };
+
+export type CreateRemoteProjectRequest = { organization_id: string, name: string, metadata: Record<string, unknown>, };
+
+export type ListOrganizationsResponse = { organizations: Array<OrganizationWithRole>, };
+
+export type OrganizationWithRole = { id: string, name: string, slug: string, is_personal: boolean, created_at: string, updated_at: string, user_role: MemberRole, };
+
+export enum MemberRole { ADMIN = "ADMIN", MEMBER = "MEMBER" }
+
+export enum InvitationStatus { PENDING = "PENDING", ACCEPTED = "ACCEPTED", DECLINED = "DECLINED", EXPIRED = "EXPIRED" }
+
+export type OrganizationMemberWithProfile = { user_id: string, role: MemberRole, joined_at: string, first_name: string | null, last_name: string | null, username: string | null, email: string | null, avatar_url: string | null, };
+
+export type ListMembersResponse = { members: Array<OrganizationMemberWithProfile>, };
+
+export type CreateOrganizationRequest = { name: string, slug: string, };
+
+export type CreateOrganizationResponse = { organization: OrganizationWithRole, };
+
+export type CreateInvitationRequest = { email: string, role: MemberRole, };
+
+export type CreateInvitationResponse = { invitation: Invitation, };
+
+export type RevokeInvitationRequest = { invitation_id: string, };
+
+export type UpdateMemberRoleRequest = { role: MemberRole, };
+
+export type UpdateMemberRoleResponse = { user_id: string, role: MemberRole, };
+
+export type Invitation = { id: string, organization_id: string, invited_by_user_id: string | null, email: string, role: MemberRole, status: InvitationStatus, token: string, created_at: string, expires_at: string, };
+
+export type ListInvitationsResponse = { invitations: Array<Invitation>, };
+
+export type SharedTask = { id: string, title: string, description: string | null, status: string, created_at: string, updated_at: string, };
+
+export type ShareTaskResponse = { shared_task_id: string, share_url: string, };
+
+export type SharedTaskResponse = { id: string, title: string, description: string | null, status: string, created_at: string, updated_at: string, };
+
+export type SharedTaskDetails = { id: string, title: string, description: string | null, status: string, created_at: string, updated_at: string, assignee_id: string | null, };
+
 export type RegisterRepoRequest = { path: string, display_name: string | null, };
 
 export type InitRepoRequest = { parent_path: string, folder_name: string, };

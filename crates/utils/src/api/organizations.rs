@@ -18,6 +18,7 @@ pub enum MemberRole {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, TS)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[sqlx(type_name = "invitation_status", rename_all = "lowercase")]
+#[ts(export)]
 #[ts(use_ts_enum)]
 #[ts(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum InvitationStatus {

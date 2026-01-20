@@ -64,6 +64,7 @@ impl JwksCache {
     }
 
     /// Clear the cache (useful for testing or force refresh)
+    #[allow(dead_code)]
     async fn clear(&self) {
         let mut cache = self.keys.write().await;
         cache.clear();
@@ -119,7 +120,14 @@ fn extract_bearer_token(headers: &HeaderMap) -> Result<String, ApiError> {
 
 /// Get Casdoor URL from environment
 fn get_casdoor_url() -> String {
-    std::env::var("CASDOOR_URL").unwrap_or_else(|_| "https://auth.yes-tek.com".to_string())
+    // Priority: runtime env var > compile-time default > fallback
+    if let Ok(url) = std::env::var("CASDOOR_URL") {
+        return url;
+    }
+    if let Some(url) = option_env!("BUILD_CASDOOR_URL") {
+        return url.to_owned();
+    }
+    "https://auth.yes-tek.com".to_string()
 }
 
 /// Get JWT secret from environment (for HS256 fallback)

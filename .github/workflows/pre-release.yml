@@ -236,9 +236,17 @@ jobs:
           cargo zigbuild --release --target ${{ matrix.target }} --bin mcp_task_server
           cargo zigbuild --release --target ${{ matrix.target }} -p review
         env:
+          # Analytics
           POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
           POSTHOG_API_ENDPOINT: ${{ secrets.POSTHOG_API_ENDPOINT }}
           VK_SHARED_API_BASE: ${{ secrets.VK_SHARED_API_BASE }}
+          # Built-in defaults (compile-time)
+          BUILD_CASDOOR_URL: ${{ secrets.BUILD_CASDOOR_URL }}
+          BUILD_CASDOOR_CLIENT_ID: ${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
+          BUILD_CASDOOR_CLIENT_SECRET: ${{ secrets.BUILD_CASDOOR_CLIENT_SECRET }}
+          BUILD_GOST_SERVER_ADDR: ${{ secrets.BUILD_GOST_SERVER_ADDR }}
+          BUILD_JWKS_ENDPOINT: ${{ secrets.BUILD_JWKS_ENDPOINT }}
+          BUILD_DEFAULT_SERVICE_PORT: ${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
 
       - name: Build backend (non-Linux)
         if: runner.os != 'Linux'
@@ -247,9 +255,17 @@ jobs:
           cargo build --release --target ${{ matrix.target }} --bin mcp_task_server
           cargo build --release --target ${{ matrix.target }} -p review
         env:
+          # Analytics
           POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
           POSTHOG_API_ENDPOINT: ${{ secrets.POSTHOG_API_ENDPOINT }}
           VK_SHARED_API_BASE: ${{ secrets.VK_SHARED_API_BASE }}
+          # Built-in defaults (compile-time)
+          BUILD_CASDOOR_URL: ${{ secrets.BUILD_CASDOOR_URL }}
+          BUILD_CASDOOR_CLIENT_ID: ${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
+          BUILD_CASDOOR_CLIENT_SECRET: ${{ secrets.BUILD_CASDOOR_CLIENT_SECRET }}
+          BUILD_GOST_SERVER_ADDR: ${{ secrets.BUILD_GOST_SERVER_ADDR }}
+          BUILD_JWKS_ENDPOINT: ${{ secrets.BUILD_JWKS_ENDPOINT }}
+          BUILD_DEFAULT_SERVICE_PORT: ${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
 
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2

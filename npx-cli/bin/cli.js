@@ -8,6 +8,23 @@ const { ensureBinary, BINARY_TAG, CACHE_DIR, LOCAL_DEV_MODE, LOCAL_DIST_DIR, R2_
 
 const CLI_VERSION = require("../package.json").version;
 
+// GOST version and download URLs (v3+)
+const GOST_VERSION = "3.2.6";
+const GOST_RELEASES_BASE = "https://github.com/go-gost/gost/releases/download";
+
+// GOST download URLs for each platform
+function getGostUrl(platform) {
+  const urls = {
+    "linux-x64": `${GOST_RELEASES_BASE}/v${GOST_VERSION}/gost_${GOST_VERSION}_linux_amd64.tar.gz`,
+    "linux-arm64": `${GOST_RELEASES_BASE}/v${GOST_VERSION}/gost_${GOST_VERSION}_linux_arm64.tar.gz`,
+    "macos-x64": `${GOST_RELEASES_BASE}/v${GOST_VERSION}/gost_${GOST_VERSION}_darwin_amd64.tar.gz`,
+    "macos-arm64": `${GOST_RELEASES_BASE}/v${GOST_VERSION}/gost_${GOST_VERSION}_darwin_arm64.tar.gz`,
+    "windows-x64": `${GOST_RELEASES_BASE}/v${GOST_VERSION}/gost_${GOST_VERSION}_windows_amd64.zip`,
+    "windows-arm64": `${GOST_RELEASES_BASE}/v${GOST_VERSION}/gost_${GOST_VERSION}_windows_arm64.zip`,
+  };
+  return urls[platform];
+}
+
 // Resolve effective arch for our published 64-bit binaries only.
 // Any ARM → arm64; anything else → x64. On macOS, handle Rosetta.
 function getEffectiveArch() {
@@ -83,6 +100,170 @@ function showProgress(downloaded, total) {
   process.stderr.write(`\r   Downloading: ${mb}MB / ${totalMb}MB (${percent}%)`);
 }
 
+/**
+ * Ensure GOST binary is available.
+ * Returns the path to the GOST binary.
+ */
+async function ensureGost() {
+  // Respect GOST_BINARY_PATH environment variable
+  if (process.env.GOST_BINARY_PATH) {
+    return process.env.GOST_BINARY_PATH;
+  }
+
+  const gostCacheDir = path.join(CACHE_DIR, "gost", GOST_VERSION);
+  const gostBin = getBinaryName("gost");
+  const gostPath = path.join(gostCacheDir, gostBin);
+
+  // Return cached binary if exists
+  if (fs.existsSync(gostPath)) {
+    return gostPath;
+  }
+
+  // Download GOST
+  const gostUrl = getGostUrl(platformDir);
+  if (!gostUrl) {
+    console.warn(`GOST not available for ${platformDir}, tunnel features will be disabled.`);
+    return null;
+  }
+
+  fs.mkdirSync(gostCacheDir, { recursive: true });
+  console.error(`Downloading GOST v${GOST_VERSION}...`);
+
+  const downloadPath = gostPath + ".download";
+
+  try {
+    await downloadFile(gostUrl, downloadPath, null, showProgress);
+    console.error(""); // newline after progress
+
+    // Extract based on file type
+    if (gostUrl.endsWith(".tar.gz")) {
+      // .tar.gz files (GOST v3+ on Linux/macOS) - use system tar
+      const extractDir = path.join(gostCacheDir, "extract");
+      fs.mkdirSync(extractDir, { recursive: true });
+
+      await new Promise((resolve, reject) => {
+        const { exec } = require("child_process");
+        exec(`tar -xzf "${downloadPath}" -C "${extractDir}"`, (error, stdout, stderr) => {
+          if (error) {
+            reject(new Error(`tar extraction failed: ${error.message}`));
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      // Find and move the gost binary
+      const extractedBin = path.join(extractDir, "gost");
+      if (fs.existsSync(extractedBin)) {
+        fs.renameSync(extractedBin, gostPath);
+      } else {
+        // Try to find any executable in extract dir
+        const files = fs.readdirSync(extractDir);
+        const exeFile = files.find(f => f.startsWith("gost"));
+        if (exeFile) {
+          fs.renameSync(path.join(extractDir, exeFile), gostPath);
+        } else {
+          throw new Error("gost binary not found in archive");
+        }
+      }
+
+      // Cleanup extract dir
+      try {
+        fs.rmdirSync(extractDir, { recursive: true });
+      } catch {}
+    } else if (gostUrl.endsWith(".zip")) {
+      // Windows .zip contains gost.exe
+      const zip = new AdmZip(downloadPath);
+      zip.extractAllTo(gostCacheDir, true);
+      // Move gost.exe if needed
+      const extractedPath = path.join(gostCacheDir, "gost.exe");
+      if (fs.existsSync(extractedPath) && extractedPath !== gostPath) {
+        fs.renameSync(extractedPath, gostPath);
+      }
+    }
+
+    // Cleanup download file
+    try {
+      fs.unlinkSync(downloadPath);
+    } catch {}
+
+    // Set executable permission (non-Windows)
+    if (platform !== "win32") {
+      try {
+        fs.chmodSync(gostPath, 0o755);
+      } catch {}
+    }
+
+    console.error(`GOST installed to: ${gostPath}`);
+    return gostPath;
+  } catch (err) {
+    console.error(`Failed to download GOST: ${err.message}`);
+    console.warn("Tunnel features will be disabled.");
+    return null;
+  }
+}
+
+/**
+ * Download a file from URL to destination path.
+ */
+function downloadFile(url, destPath, expectedSha256, onProgress) {
+  return new Promise((resolve, reject) => {
+    const https = require("https");
+    const crypto = require("crypto");
+
+    const file = fs.createWriteStream(destPath);
+    const hash = crypto.createHash("sha256");
+
+    const cleanup = () => {
+      try {
+        fs.unlinkSync(destPath);
+      } catch {}
+    };
+
+    https.get(url, (res) => {
+      // Follow redirects
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        file.close();
+        cleanup();
+        return downloadFile(res.headers.location, destPath, expectedSha256, onProgress)
+          .then(resolve)
+          .catch(reject);
+      }
+
+      if (res.statusCode !== 200) {
+        file.close();
+        cleanup();
+        return reject(new Error(`HTTP ${res.statusCode} downloading ${url}`));
+      }
+
+      const totalSize = parseInt(res.headers["content-length"], 10);
+      let downloadedSize = 0;
+
+      res.on("data", (chunk) => {
+        downloadedSize += chunk.length;
+        hash.update(chunk);
+        if (onProgress) onProgress(downloadedSize, totalSize);
+      });
+      res.pipe(file);
+
+      file.on("finish", () => {
+        file.close();
+        const actualSha256 = hash.digest("hex");
+        if (expectedSha256 && actualSha256 !== expectedSha256) {
+          cleanup();
+          reject(new Error(`Checksum mismatch: expected ${expectedSha256}, got ${actualSha256}`));
+        } else {
+          resolve(destPath);
+        }
+      });
+    }).on("error", (err) => {
+      file.close();
+      cleanup();
+      reject(err);
+    });
+  });
+}
+
 async function extractAndRun(baseName, launch) {
   const binName = getBinaryName(baseName);
   const binPath = path.join(versionCacheDir, binName);
@@ -147,6 +328,15 @@ async function main() {
   const args = process.argv.slice(2);
   const isMcpMode = args.includes("--mcp");
   const isReviewMode = args[0] === "review";
+
+  // Ensure GOST is available (only for main mode, not MCP/Review)
+  // Skip if GOST_BINARY_PATH is already set
+  if (!isMcpMode && !isReviewMode && !process.env.GOST_BINARY_PATH) {
+    const gostPath = await ensureGost();
+    if (gostPath) {
+      process.env.GOST_BINARY_PATH = gostPath;
+    }
+  }
 
   // Non-blocking update check (skip in MCP mode, local dev mode, and when R2 URL not configured)
   const hasValidR2Url = !R2_BASE_URL.startsWith("__");

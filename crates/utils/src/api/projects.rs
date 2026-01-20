@@ -7,6 +7,7 @@ use uuid::Uuid;
 use super::organizations::OrganizationMemberWithProfile;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct RemoteProject {
     pub id: Uuid,
     pub organization_id: Uuid,
@@ -17,6 +18,7 @@ pub struct RemoteProject {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ListProjectsResponse {
     pub projects: Vec<RemoteProject>,
 }
@@ -26,4 +28,22 @@ pub struct ListProjectsResponse {
 pub struct RemoteProjectMembersResponse {
     pub organization_id: Uuid,
     pub members: Vec<OrganizationMemberWithProfile>,
+}
+
+// Placeholder types for removed remote deployment features
+// These are kept for TypeScript compatibility but are no longer used
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct LinkToExistingRequest {
+    pub remote_project_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct CreateRemoteProjectRequest {
+    pub organization_id: Uuid,
+    pub name: String,
+    #[ts(type = "Record<string, unknown>")]
+    pub metadata: Value,
 }

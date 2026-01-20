@@ -25,6 +25,7 @@ struct GatewayRegisterRequest {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct GatewayGostConfig {
     server_addr: String,
     tunnel_id: String,
@@ -32,12 +33,14 @@ struct GatewayGostConfig {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct GatewayTunnelConfig {
     tunnel_id: String,
     gost_config: GatewayGostConfig,
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct GatewayRegisterResponse {
     device_id: String,
     tunnel: GatewayTunnelConfig,
@@ -158,6 +161,7 @@ fn get_local_mac_address() -> String {
 
 /// Force refresh MAC address cache (for testing)
 #[cfg(test)]
+#[allow(dead_code)]
 fn refresh_mac_cache() {
     // OnceLock doesn't have take(), but we can just let it expire naturally
     // For testing purposes, you'd need to use a different caching mechanism

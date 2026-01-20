@@ -1,6 +1,29 @@
 /// Tunnel service configuration for GOST v3 direct routing
 use serde::Deserialize;
 
+/// Helper to get config value with priority:
+/// 1. Runtime environment variable (user override)
+/// 2. Compile-time default (set during CI/CD build)
+/// 3. Fallback value (for local development)
+fn get_config_value(
+    env_key: &str,
+    compile_default: Option<&'static str>,
+    fallback: &str,
+) -> String {
+    // First check runtime environment variable
+    if let Ok(value) = std::env::var(env_key) {
+        return value;
+    }
+
+    // Then check compile-time default (set during CI/CD build)
+    if let Some(value) = compile_default {
+        return value.to_owned();
+    }
+
+    // Finally use fallback value
+    fallback.to_string()
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct TunnelServiceConfig {
     /// GOST v3 binary path
@@ -16,18 +39,20 @@ pub struct TunnelServiceConfig {
 impl Default for TunnelServiceConfig {
     fn default() -> Self {
         Self {
-            gost_binary_path: std::env::var("GOST_BINARY_PATH")
-                .unwrap_or_else(|_| "gost".to_string()),
-            // Local GOST server for testing (direct connection to localhost:9000)
-            gost_server_addr: std::env::var("GOST_SERVER_ADDR")
-                .unwrap_or_else(|_| "localhost:9000".to_string()),
-            jwks_endpoint: std::env::var("JWKS_ENDPOINT")
-                .unwrap_or_else(|_| "https://vibe-kanban.example.com/.well-known/jwks.json".to_string()),
-            // Default service port (frontend for local testing)
-            default_service_port: std::env::var("DEFAULT_SERVICE_PORT")
-                .unwrap_or_else(|_| "23001".to_string())
-                .parse()
-                .unwrap_or(23001),
+            gost_binary_path: get_config_value("GOST_BINARY_PATH", option_env!("BUILD_GOST_BINARY_PATH"), "gost"),
+            gost_server_addr: get_config_value("GOST_SERVER_ADDR", option_env!("BUILD_GOST_SERVER_ADDR"), "localhost:9000"),
+            jwks_endpoint: get_config_value(
+                "JWKS_ENDPOINT",
+                option_env!("BUILD_JWKS_ENDPOINT"),
+                "https://vibe-kanban.example.com/.well-known/jwks",
+            ),
+            default_service_port: get_config_value(
+                "DEFAULT_SERVICE_PORT",
+                option_env!("BUILD_DEFAULT_SERVICE_PORT"),
+                "23001",
+            )
+            .parse()
+            .unwrap_or(23001),
         }
     }
 }
