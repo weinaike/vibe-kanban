@@ -4,7 +4,7 @@ const { execSync, spawn } = require("child_process");
 const AdmZip = require("adm-zip");
 const path = require("path");
 const fs = require("fs");
-const { ensureBinary, BINARY_TAG, CACHE_DIR, LOCAL_DEV_MODE, LOCAL_DIST_DIR, R2_BASE_URL, getLatestVersion } = require("./download");
+const { ensureBinary, BINARY_TAG, CACHE_DIR, LOCAL_DEV_MODE, LOCAL_DIST_DIR, CDN_BASE_URL, getLatestVersion } = require("./download");
 
 const CLI_VERSION = require("../package.json").version;
 
@@ -338,9 +338,9 @@ async function main() {
     }
   }
 
-  // Non-blocking update check (skip in MCP mode, local dev mode, and when R2 URL not configured)
-  const hasValidR2Url = !R2_BASE_URL.startsWith("__");
-  if (!isMcpMode && !LOCAL_DEV_MODE && hasValidR2Url) {
+  // Non-blocking update check (skip in MCP mode, local dev mode, and when CDN URL not configured)
+  const hasValidCdnUrl = !CDN_BASE_URL.startsWith("__");
+  if (!isMcpMode && !LOCAL_DEV_MODE && hasValidCdnUrl) {
     getLatestVersion()
       .then((latest) => {
         if (latest && latest !== CLI_VERSION) {

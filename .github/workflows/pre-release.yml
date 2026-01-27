@@ -493,7 +493,7 @@ jobs:
           path: npx-cli/dist/
           retention-days: 1
 
-  upload-to-r2:
+  upload-to-oss:
     needs: [bump-version, package-npx-cli]
     runs-on: ubuntu-latest-m
     steps:
@@ -513,17 +513,25 @@ jobs:
           echo "Downloaded binaries:"
           find binaries/
 
-      - name: Configure AWS CLI for R2
+      - name: Install OSS command line tool
         run: |
-          aws configure set aws_access_key_id ${{ secrets.R2_BINARIES_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.R2_BINARIES_SECRET_ACCESS_KEY }}
-          aws configure set default.region auto
+          wget http://gosspublic.alicdn.com/ossutil/1.7.16/ossutil64
+          chmod +x ossutil64
+          sudo mv ossutil64 /usr/local/bin/ossutil
 
-      - name: Generate manifest and upload to R2
+      - name: Configure OSS
+        run: |
+          ossutil config -e "${{ secrets.OSS_ENDPOINT }}" \
+            -i "${{ secrets.OSS_ACCESS_KEY_ID }}" \
+            -k "${{ secrets.OSS_ACCESS_KEY_SECRET }}" \
+            -L CH \
+            --output-dir /tmp/ossutil-output
+
+      - name: Generate manifest and upload to OSS
         run: |
           TAG="${{ needs.bump-version.outputs.new_tag }}"
-          ENDPOINT="${{ secrets.R2_BINARIES_ENDPOINT }}"
-          BUCKET="${{ secrets.R2_BINARIES_BUCKET }}"
+          BUCKET="${{ secrets.OSS_BUCKET }}"
+          BUCKET_PATH="oss://$BUCKET/vibe-kanban/binaries"
 
           # Generate version manifest with checksums
           node -e "
@@ -556,39 +564,38 @@ jobs:
             for binary in vibe-kanban vibe-kanban-mcp vibe-kanban-review; do
               if [ -f "binaries/$platform/$binary.zip" ]; then
                 echo "Uploading binaries/$platform/$binary.zip..."
-                aws s3 cp "binaries/$platform/$binary.zip" \
-                  "s3://$BUCKET/binaries/$TAG/$platform/$binary.zip" \
-                  --endpoint-url "$ENDPOINT"
+                ossutil cp "binaries/$platform/$binary.zip" \
+                  "$BUCKET_PATH/$TAG/$platform/$binary.zip" \
+                  --update
               fi
             done
           done
 
           # Upload version manifest
           echo "Uploading version manifest..."
-          aws s3 cp version-manifest.json \
-            "s3://$BUCKET/binaries/$TAG/manifest.json" \
-            --endpoint-url "$ENDPOINT" --content-type "application/json"
+          ossutil cp version-manifest.json \
+            "$BUCKET_PATH/$TAG/manifest.json" \
+            --update \
+            --meta "Content-Type:application/json"
 
           # Update global manifest
           VERSION="${{ needs.bump-version.outputs.new_version }}"
           echo "Updating global manifest..."
-          echo "{\"latest\": \"$VERSION\"}" | aws s3 cp - \
-            "s3://$BUCKET/binaries/manifest.json" \
-            --endpoint-url "$ENDPOINT" --content-type "application/json"
+          echo "{\"latest\": \"$VERSION\"}" | ossutil cp - \
+            "$BUCKET_PATH/manifest.json" \
+            --meta "Content-Type:application/json"
 
       - name: Verify upload
         run: |
           TAG="${{ needs.bump-version.outputs.new_tag }}"
-          ENDPOINT="${{ secrets.R2_BINARIES_ENDPOINT }}"
-          BUCKET="${{ secrets.R2_BINARIES_BUCKET }}"
+          BUCKET="${{ secrets.OSS_BUCKET }}"
+          BUCKET_PATH="oss://$BUCKET/vibe-kanban/binaries"
 
           echo "Listing uploaded files..."
-          aws s3 ls "s3://$BUCKET/binaries/$TAG/" \
-            --endpoint-url "$ENDPOINT" \
-            --recursive
+          ossutil ls "$BUCKET_PATH/$TAG/" -r
 
   create-prerelease:
-    needs: [bump-version, build-frontend, upload-to-r2]
+    needs: [bump-version, build-frontend, upload-to-oss]
     runs-on: ubuntu-latest-m
     steps:
       - uses: actions/checkout@v4
@@ -615,11 +622,11 @@ jobs:
       - name: Setup Node for npm pack
         uses: ./.github/actions/setup-node
 
-      - name: Inject R2 URL and tag, then Pack
+      - name: Inject OSS URL and tag, then Pack
         run: |
           cd npx-cli
           # Replace placeholders with actual values
-          sed -i "s|__R2_PUBLIC_URL__|${{ secrets.R2_BINARIES_PUBLIC_URL }}|g" bin/download.js
+          sed -i "s|__CDN_PUBLIC_URL__|${{ secrets.OSS_PUBLIC_URL }}|g" bin/download.js
           sed -i "s|__BINARY_TAG__|${{ needs.bump-version.outputs.new_tag }}|g" bin/download.js
           npm pack
 
