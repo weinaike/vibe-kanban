@@ -1,9 +1,6 @@
 name: Create GitHub Pre-Release
 
 on:
-  push:
-    branches:
-      - my_phone
   workflow_dispatch:
     inputs:
       version_type:
@@ -77,16 +74,8 @@ jobs:
 
           timestamp=$(date +%Y%m%d%H%M%S)
 
-          # Determine version type (use "patch" for auto-triggered builds)
-          VERSION_TYPE="${{ github.event.inputs.version_type }}"
-          if [[ -z "$VERSION_TYPE" ]]; then
-            VERSION_TYPE="patch"
-            echo "Auto-triggered: using patch version bump"
-          fi
-          echo "Version type: $VERSION_TYPE"
-
           # Update root package.json based on npm version, not current package.json
-          if [[ "$VERSION_TYPE" == "prerelease" ]]; then
+          if [[ "${{ github.event.inputs.version_type }}" == "prerelease" ]]; then
             # For prerelease, use current package.json version and add branch suffix
             npm version prerelease --preid="${{ steps.branch.outputs.suffix }}" --no-git-tag-version
 
@@ -95,7 +84,7 @@ jobs:
           else
             # For regular releases, use npm version and bump it
             npm version $latest_npm_version --no-git-tag-version --allow-same-version
-            npm version $VERSION_TYPE --no-git-tag-version
+            npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
 
             new_version=$(node -p "require('./package.json').version")
             new_tag="v${new_version}-${timestamp}"
