@@ -15,7 +15,6 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
 
 env:
   NODE_VERSION: 22
@@ -118,48 +117,3 @@ jobs:
             target/release/server
             frontend/dist/
           retention-days: 7
-
-  build-docker:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/my_phone'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_CASDOOR_URL=${{ secrets.BUILD_CASDOOR_URL }}
-            BUILD_CASDOOR_CLIENT_ID=${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
-            BUILD_CASDOOR_CLIENT_SECRET=${{ secrets.BUILD_CASDOOR_CLIENT_SECRET }}
-            BUILD_GOST_SERVER_ADDR=${{ secrets.BUILD_GOST_SERVER_ADDR }}
-            BUILD_JWKS_ENDPOINT=${{ secrets.BUILD_JWKS_ENDPOINT }}
-            BUILD_DEFAULT_SERVICE_PORT=${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
