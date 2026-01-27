@@ -1,0 +1,167 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: build-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 10.13.1
+  RUST_VERSION: stable
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pnpm-store
+            **/node_modules
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate TypeScript types
+        run: pnpm run generate-types
+
+      - name: Create .env file for build
+        run: |
+          cat > .env << EOF
+          # Build-time configuration from GitHub Secrets
+          CASDOOR_URL=${{ secrets.BUILD_CASDOOR_URL }}
+          CASDOOR_CLIENT_ID=${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
+          CASDOOR_CLIENT_SECRET=${{ secrets.BUILD_CASDOOR_CLIENT_SECRET }}
+          GOST_SERVER_ADDR=${{ secrets.BUILD_GOST_SERVER_ADDR }}
+          JWKS_ENDPOINT=${{ secrets.BUILD_JWKS_ENDPOINT }}
+          FRONTEND_PORT=${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
+          BACKEND_PORT=${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
+          HOST=0.0.0.0
+          EOF
+
+      - name: Build frontend
+        env:
+          VITE_CASDOOR_URL: ${{ secrets.BUILD_CASDOOR_URL }}
+          VITE_CASDOOR_CLIENT_ID: ${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
+          VITE_JWKS_ENDPOINT: ${{ secrets.BUILD_JWKS_ENDPOINT }}
+        run: |
+          cd frontend
+          pnpm run build
+
+      - name: Build backend
+        env:
+          CASDOOR_URL: ${{ secrets.BUILD_CASDOOR_URL }}
+          CASDOOR_CLIENT_ID: ${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
+          CASDOOR_CLIENT_SECRET: ${{ secrets.BUILD_CASDOOR_CLIENT_SECRET }}
+          GOST_SERVER_ADDR: ${{ secrets.BUILD_GOST_SERVER_ADDR }}
+          JWKS_ENDPOINT: ${{ secrets.BUILD_JWKS_ENDPOINT }}
+        run: cargo build --release --bin server
+
+      - name: Run tests
+        run: |
+          cargo test --workspace
+          cd frontend && pnpm run check
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            target/release/server
+            frontend/dist/
+          retention-days: 7
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_CASDOOR_URL=${{ secrets.BUILD_CASDOOR_URL }}
+            BUILD_CASDOOR_CLIENT_ID=${{ secrets.BUILD_CASDOOR_CLIENT_ID }}
+            BUILD_CASDOOR_CLIENT_SECRET=${{ secrets.BUILD_CASDOOR_CLIENT_SECRET }}
+            BUILD_GOST_SERVER_ADDR=${{ secrets.BUILD_GOST_SERVER_ADDR }}
+            BUILD_JWKS_ENDPOINT=${{ secrets.BUILD_JWKS_ENDPOINT }}
+            BUILD_DEFAULT_SERVICE_PORT=${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
