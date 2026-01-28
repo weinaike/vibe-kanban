@@ -210,13 +210,6 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             name: windows-x64
-          # Intel-only runner; last supported x86_64 image (EOL Aug 2027)
-          - target: x86_64-apple-darwin
-            os: macos-15-xlarge
-            name: macos-x64
-          - target: aarch64-apple-darwin
-            os: macos-15-xlarge
-            name: macos-arm64
           - target: aarch64-pc-windows-msvc
             os: windows-latest
             name: windows-arm64
@@ -441,31 +434,21 @@ jobs:
             binary: vibe-kanban
             mcp_binary: vibe-kanban-mcp
             review_binary: vibe-kanban-review
-          - target: x86_64-pc-windows-msvc
-            name: windows-x64
-            binary: vibe-kanban.exe
-            mcp_binary: vibe-kanban-mcp.exe
-            review_binary: vibe-kanban-review.exe
-          - target: x86_64-apple-darwin
-            name: macos-x64
-            binary: vibe-kanban
-            mcp_binary: vibe-kanban-mcp
-            review_binary: vibe-kanban-review
-          - target: aarch64-apple-darwin
-            name: macos-arm64
-            binary: vibe-kanban
-            mcp_binary: vibe-kanban-mcp
-            review_binary: vibe-kanban-review
-          - target: aarch64-pc-windows-msvc
-            name: windows-arm64
-            binary: vibe-kanban.exe
-            mcp_binary: vibe-kanban-mcp.exe
-            review_binary: vibe-kanban-review.exe
           - target: aarch64-unknown-linux-musl
             name: linux-arm64
             binary: vibe-kanban
             mcp_binary: vibe-kanban-mcp
             review_binary: vibe-kanban-review
+          - target: x86_64-pc-windows-msvc
+            name: windows-x64
+            binary: vibe-kanban.exe
+            mcp_binary: vibe-kanban-mcp.exe
+            review_binary: vibe-kanban-review.exe
+          - target: aarch64-pc-windows-msvc
+            name: windows-arm64
+            binary: vibe-kanban.exe
+            mcp_binary: vibe-kanban-mcp.exe
+            review_binary: vibe-kanban-review.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -489,7 +472,6 @@ jobs:
           find dist/
 
       - name: Create platform package
-        if: matrix.name != 'macos-arm64' && matrix.name != 'macos-x64'
         run: |
           mkdir -p npx-cli/dist/${{ matrix.name }}
           mkdir vibe-kanban-${{ matrix.name }}
@@ -503,15 +485,6 @@ jobs:
           zip -j npx-cli/dist/${{ matrix.name }}/vibe-kanban.zip vibe-kanban-${{ matrix.name }}/${{ matrix.binary }}
           zip -j npx-cli/dist/${{ matrix.name }}/vibe-kanban-mcp.zip vibe-kanban-mcp-${{ matrix.name }}/${{ matrix.mcp_binary }}
           zip -j npx-cli/dist/${{ matrix.name }}/vibe-kanban-review.zip vibe-kanban-review-${{ matrix.name }}/${{ matrix.review_binary }}
-
-      - name: Create platform package (macOS)
-        if: matrix.name == 'macos-arm64' || matrix.name == 'macos-x64'
-        run: |
-          mkdir -p npx-cli/dist/${{ matrix.name }}
-          mkdir vibe-kanban-${{ matrix.name }}
-          cp dist/vibe-kanban-${{ matrix.name }}* npx-cli/dist/${{ matrix.name }}/vibe-kanban.zip
-          cp dist/vibe-kanban-mcp-${{ matrix.name }}* npx-cli/dist/${{ matrix.name }}/vibe-kanban-mcp.zip
-          cp dist/vibe-kanban-review-${{ matrix.name }}* npx-cli/dist/${{ matrix.name }}/vibe-kanban-review.zip
 
       - name: Upload platform package artifact
         uses: actions/upload-artifact@v4
@@ -565,7 +538,7 @@ jobs:
             const fs = require('fs');
             const crypto = require('crypto');
             const manifest = { version: '$TAG', platforms: {} };
-            const platforms = ['linux-x64', 'linux-arm64', 'windows-x64', 'windows-arm64', 'macos-x64', 'macos-arm64'];
+            const platforms = ['linux-x64', 'linux-arm64', 'windows-x64', 'windows-arm64'];
             const binaries = ['vibe-kanban', 'vibe-kanban-mcp', 'vibe-kanban-review'];
 
             for (const platform of platforms) {
@@ -587,7 +560,7 @@ jobs:
           "
 
           # Upload binaries (use full tag for path, allows multiple pre-releases to coexist)
-          for platform in linux-x64 linux-arm64 windows-x64 windows-arm64 macos-x64 macos-arm64; do
+          for platform in linux-x64 linux-arm64 windows-x64 windows-arm64; do
             for binary in vibe-kanban vibe-kanban-mcp vibe-kanban-review; do
               if [ -f "binaries/$platform/$binary.zip" ]; then
                 echo "Uploading binaries/$platform/$binary.zip..."
