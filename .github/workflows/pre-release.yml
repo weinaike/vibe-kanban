@@ -55,6 +55,9 @@ jobs:
       - name: setup node
         uses: ./.github/actions/setup-node
 
+      - name: Install semver
+        run: npm install -g semver
+
       - name: Generate branch suffix
         id: branch
         run: |
