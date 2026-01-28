@@ -55,9 +55,6 @@ jobs:
       - name: setup node
         uses: ./.github/actions/setup-node
 
-      - name: Install semver
-        run: npm install -g semver
-
       - name: Generate branch suffix
         id: branch
         run: |
@@ -90,13 +87,14 @@ jobs:
             new_tag="v${new_version}.${timestamp}"
           else
             # For regular releases, bump from whichever is higher: npm version or local version
-            # Use node to semver comparison and determine base version
-            base_version=$(node -e "
-              const semver = require('semver');
-              const npmVer = process.argv[1];
-              const localVer = process.argv[2];
-              console.log(semver.gt(localVer, npmVer) ? localVer : npmVer);
-            " "$latest_npm_version" "$current_local_version")
+            # Use bash sort -V for version comparison
+            if [[ "$(printf '%s\n' "$latest_npm_version" "$current_local_version" | sort -V | head -n1)" == "$latest_npm_version" ]]; then
+              # npm version is lower or equal, use local version as base
+              base_version="$current_local_version"
+            else
+              # npm version is higher, use npm version as base
+              base_version="$latest_npm_version"
+            fi
             echo "Base version for bumping: $base_version"
 
             # Set to base version first (only if different from current)
