@@ -30,7 +30,7 @@ env:
 
 jobs:
   bump-version:
-    runs-on: ubuntu-latest-m
+    runs-on: ubuntu-latest
     outputs:
       new_tag: ${{ steps.version.outputs.new_tag }}
       new_version: ${{ steps.version.outputs.new_version }}
@@ -119,7 +119,7 @@ jobs:
 
   build-frontend:
     needs: bump-version
-    runs-on: ubuntu-latest-m
+    runs-on: ubuntu-latest
     env:
       VITE_PUBLIC_REACT_VIRTUOSO_LICENSE_KEY: ${{ secrets.PUBLIC_REACT_VIRTUOSO_LICENSE_KEY }}
       VITE_VK_SHARED_API_BASE: ${{ secrets.VK_SHARED_API_BASE }}
@@ -403,7 +403,7 @@ jobs:
 
   package-npx-cli:
     needs: [bump-version, build-frontend, build-backend]
-    runs-on: ubuntu-latest-m
+    runs-on: ubuntu-latest
     strategy:
       # NOTE: This matrix must be kept in sync with build-backend job above
       # GitHub Actions doesn't support YAML anchors, so duplication is unavoidable
@@ -495,7 +495,7 @@ jobs:
 
   upload-to-oss:
     needs: [bump-version, package-npx-cli]
-    runs-on: ubuntu-latest-m
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -596,7 +596,7 @@ jobs:
 
   create-prerelease:
     needs: [bump-version, build-frontend, upload-to-oss]
-    runs-on: ubuntu-latest-m
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
