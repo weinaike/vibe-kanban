@@ -28,8 +28,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     # Only run if this was converted from a pre-release
-    # Note: When running via workflow_dispatch, we don't have the release.prerelease property
-    if: github.event_name == 'release' && github.event.release.prerelease == false
+    # For release events: skip pre-releases
+    # For workflow_dispatch: always run (allows manual publishing of pre-releases)
+    if: github.event_name != 'release' || !github.event.release.prerelease
     steps:
       - uses: actions/checkout@v4
         with:
