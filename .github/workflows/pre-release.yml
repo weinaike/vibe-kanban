@@ -90,10 +90,10 @@ jobs:
             # Use node to semver comparison and determine base version
             base_version=$(node -e "
               const semver = require('semver');
-              const npmVer = '$latest_npm_version';
-              const localVer = '$current_local_version';
+              const npmVer = process.argv[1];
+              const localVer = process.argv[2];
               console.log(semver.gt(localVer, npmVer) ? localVer : npmVer);
-            ")
+            " "$latest_npm_version" "$current_local_version")
             echo "Base version for bumping: $base_version"
 
             # Set to base version first (only if different from current)
@@ -101,9 +101,9 @@ jobs:
               # Use node to directly modify package.json instead of npm version
               node -e "
                 const pkg = require('./package.json');
-                pkg.version = '$base_version';
+                pkg.version = process.argv[1];
                 require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
-              "
+              " "$base_version"
             fi
 
             # Now bump the version
