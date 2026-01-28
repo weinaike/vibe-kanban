@@ -83,7 +83,8 @@ jobs:
             new_tag="v${new_version}.${timestamp}"
           else
             # For regular releases, use npm version and bump it
-            npm version $latest_npm_version --no-git-tag-version --allow-same-version
+            # Use --force to allow downgrading if local version is higher
+            npm version $latest_npm_version --no-git-tag-version --allow-same-version --force
             npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
 
             new_version=$(node -p "require('./package.json').version")
