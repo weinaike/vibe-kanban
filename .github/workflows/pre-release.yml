@@ -581,8 +581,10 @@ jobs:
           # Update global manifest
           VERSION="${{ needs.bump-version.outputs.new_version }}"
           echo "Updating global manifest..."
-          echo "{\"latest\": \"$VERSION\"}" | ossutil cp - \
+          echo "{\"latest\": \"$VERSION\"}" > global-manifest.json
+          ossutil cp global-manifest.json \
             "$BUCKET_PATH/manifest.json" \
+            --update \
             --meta "Content-Type:application/json"
 
       - name: Verify upload
