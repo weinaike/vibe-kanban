@@ -18,7 +18,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { type ReactNode, type Ref, type KeyboardEvent, useState, Children } from 'react';
+import React, { type ReactNode, type Ref, type KeyboardEvent, useState, Children } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Plus, ChevronDown } from 'lucide-react';
@@ -54,19 +54,18 @@ export const KanbanBoard = ({ id, children, className }: KanbanBoardProps) => {
   // Extract header and cards from children
   const childrenArray = Children.toArray(children);
   const header = childrenArray.find(
-    (child) => (child as any).type === KanbanHeader
+    (child) => React.isValidElement(child) && child.type === KanbanHeader
   );
   const cards = childrenArray.find(
-    (child) => (child as any).type === KanbanCards
+    (child) => React.isValidElement(child) && child.type === KanbanCards
   );
 
   // Clone header with toggle props
-  const headerWithToggle = header
-    ? (KanbanHeader as any)({
-        ...(header as any).props,
-        onToggle: () => setIsExpanded(!isExpanded),
-        isExpanded,
-      })
+  const headerWithToggle = header && React.isValidElement(header)
+    ? React.cloneElement(
+        header as React.ReactElement<{ onToggle?: () => void; isExpanded?: boolean }>,
+        { onToggle: () => setIsExpanded(!isExpanded), isExpanded }
+      )
     : null;
 
   return (

@@ -33,7 +33,7 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
   const [viewMode, setViewMode] = useState<'tree' | 'file'>('tree');
   const loadedPathsRef = useRef<Set<string>>(new Set());
 
-  const buildTree = (entries: DirectoryEntry[]): FileNode[] => {
+  const buildTree = useCallback((entries: DirectoryEntry[]): FileNode[] => {
     return entries
       .filter((entry) => !entry.name.startsWith('.'))
       .map((entry) => ({
@@ -48,9 +48,9 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
         if (!a.isDirectory && b.isDirectory) return 1;
         return a.name.localeCompare(b.name);
       });
-  };
+  }, []);
 
-  const loadDirectory = async (path: string) => {
+  const loadDirectory = useCallback(async (path: string) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -64,7 +64,7 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [buildTree]);
 
   const loadFile = async (path: string) => {
     setIsLoading(true);
@@ -104,7 +104,7 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
         return next;
       });
     }
-  }, []);
+  }, [buildTree]);
 
   const updateNodeChildren = useCallback((tree: FileNode | null, targetPath: string, newChildren: FileNode[]): FileNode | null => {
     if (!tree) return null;
@@ -153,7 +153,7 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
     loadedPathsRef.current.clear();
     loadDirectory(currentPath);
     setViewMode('tree');
-  }, [currentPath]);
+  }, [currentPath, loadDirectory]);
 
   const TreeNode = ({ node, depth = 0 }: { node: FileNode; depth?: number }) => {
     const isExpanded = expandedPaths.has(node.path);
