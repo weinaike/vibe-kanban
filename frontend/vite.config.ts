@@ -71,11 +71,11 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
         // 确保代理所有请求
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
             console.log('proxy error', err);
           });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
             console.log('Proxying:', req.method, req.url, '->', proxyReq.getHeader('host'));
           });
         },
