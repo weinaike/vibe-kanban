@@ -72,6 +72,10 @@ jobs:
           latest_npm_version=$(npm view vibe-kanban version 2>/dev/null || echo "0.0.0")
           echo "Latest npm version: $latest_npm_version"
 
+          # Get current local version
+          current_local_version=$(node -p "require('./package.json').version")
+          echo "Current local version: $current_local_version"
+
           timestamp=$(date +%Y%m%d%H%M%S)
 
           # Update root package.json based on npm version, not current package.json
@@ -82,9 +86,27 @@ jobs:
             new_version=$(node -p "require('./package.json').version")
             new_tag="v${new_version}.${timestamp}"
           else
-            # For regular releases, use npm version and bump it
-            # Use --force to allow downgrading if local version is higher
-            npm version $latest_npm_version --no-git-tag-version --allow-same-version --force
+            # For regular releases, bump from whichever is higher: npm version or local version
+            # Use node to semver comparison and determine base version
+            base_version=$(node -e "
+              const semver = require('semver');
+              const npmVer = '$latest_npm_version';
+              const localVer = '$current_local_version';
+              console.log(semver.gt(localVer, npmVer) ? localVer : npmVer);
+            ")
+            echo "Base version for bumping: $base_version"
+
+            # Set to base version first (only if different from current)
+            if [[ "$base_version" != "$current_local_version" ]]; then
+              # Use node to directly modify package.json instead of npm version
+              node -e "
+                const pkg = require('./package.json');
+                pkg.version = '$base_version';
+                require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
+              "
+            fi
+
+            # Now bump the version
             npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
 
             new_version=$(node -p "require('./package.json').version")
