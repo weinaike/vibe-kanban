@@ -172,7 +172,7 @@ jobs:
           VITE_POSTHOG_API_ENDPOINT: ${{ secrets.POSTHOG_API_ENDPOINT }}
 
       - name: Create Sentry release
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+        if: ${{ secrets.SENTRY_AUTH_TOKEN && secrets.SENTRY_ORG && secrets.SENTRY_PROJECT }}
         uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -293,7 +293,7 @@ jobs:
           BUILD_DEFAULT_SERVICE_PORT: ${{ secrets.BUILD_DEFAULT_SERVICE_PORT }}
 
       - name: Setup Sentry CLI
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+        if: ${{ secrets.SENTRY_AUTH_TOKEN && secrets.SENTRY_ORG && secrets.SENTRY_PROJECT }}
         uses: matbour/setup-sentry-cli@v2
         with:
           token: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -302,7 +302,7 @@ jobs:
           version: 2.21.2
 
       - name: Upload source maps to Sentry
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+        if: ${{ secrets.SENTRY_AUTH_TOKEN && secrets.SENTRY_ORG && secrets.SENTRY_PROJECT }}
         run: sentry-cli debug-files upload --include-sources target/${{ matrix.target }}/release
 
       - name: Prepare binaries (non-macOS)
