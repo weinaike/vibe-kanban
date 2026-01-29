@@ -213,12 +213,12 @@ jobs:
           - target: aarch64-pc-windows-msvc
             os: windows-latest
             name: windows-arm64
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            name: macos-x64
-          - target: aarch64-apple-darwin
-            os: [self-hosted, macos, arm64]
-            name: macos-arm64
+          # - target: x86_64-apple-darwin
+          #   os: macos-latest
+          #   name: macos-x64
+          # - target: aarch64-apple-darwin
+          #   os: [self-hosted, macos, arm64]
+          #   name: macos-arm64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -476,16 +476,16 @@ jobs:
             binary: vibe-kanban.exe
             mcp_binary: vibe-kanban-mcp.exe
             review_binary: vibe-kanban-review.exe
-          - target: x86_64-apple-darwin
-            name: macos-x64
-            binary: vibe-kanban.zip
-            mcp_binary: vibe-kanban-mcp.zip
-            review_binary: vibe-kanban-review.zip
-          - target: aarch64-apple-darwin
-            name: macos-arm64
-            binary: vibe-kanban.zip
-            mcp_binary: vibe-kanban-mcp.zip
-            review_binary: vibe-kanban-review.zip
+          # - target: x86_64-apple-darwin
+          #   name: macos-x64
+          #   binary: vibe-kanban.zip
+          #   mcp_binary: vibe-kanban-mcp.zip
+          #   review_binary: vibe-kanban-review.zip
+          # - target: aarch64-apple-darwin
+          #   name: macos-arm64
+          #   binary: vibe-kanban.zip
+          #   mcp_binary: vibe-kanban-mcp.zip
+          #   review_binary: vibe-kanban-review.zip
     steps:
       - uses: actions/checkout@v4
         with:
@@ -575,7 +575,8 @@ jobs:
             const fs = require('fs');
             const crypto = require('crypto');
             const manifest = { version: '$TAG', platforms: {} };
-            const platforms = ['linux-x64', 'linux-arm64', 'windows-x64', 'windows-arm64', 'macos-x64', 'macos-arm64'];
+            const platforms = ['linux-x64', 'linux-arm64', 'windows-x64', 'windows-arm64'];
+            // const platforms = ['linux-x64', 'linux-arm64', 'windows-x64', 'windows-arm64', 'macos-x64', 'macos-arm64'];
             const binaries = ['vibe-kanban', 'vibe-kanban-mcp', 'vibe-kanban-review'];
 
             for (const platform of platforms) {
@@ -597,7 +598,8 @@ jobs:
           "
 
           # Upload binaries (use full tag for path, allows multiple pre-releases to coexist)
-          for platform in linux-x64 linux-arm64 windows-x64 windows-arm64 macos-x64 macos-arm64; do
+          for platform in linux-x64 linux-arm64 windows-x64 windows-arm64; do
+          # for platform in linux-x64 linux-arm64 windows-x64 windows-arm64 macos-x64 macos-arm64; do
             for binary in vibe-kanban vibe-kanban-mcp vibe-kanban-review; do
               if [ -f "binaries/$platform/$binary.zip" ]; then
                 echo "Uploading binaries/$platform/$binary.zip..."
