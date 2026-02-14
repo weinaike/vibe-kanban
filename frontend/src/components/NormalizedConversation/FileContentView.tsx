@@ -1,8 +1,6 @@
-import { useMemo } from 'react';
-import { DiffView, DiffModeEnum } from '@git-diff-view/react';
-import { generateDiffFile } from '@git-diff-view/file';
-import '@/styles/diff-style-overrides.css';
-import '@/styles/edit-diff-overrides.css';
+import CodeMirror from '@uiw/react-codemirror';
+import { json } from '@codemirror/lang-json';
+import { EditorView } from '@codemirror/view';
 
 type Props = {
   content: string;
@@ -10,44 +8,60 @@ type Props = {
   theme?: 'light' | 'dark';
 };
 
+// Custom light theme to ensure readable text color
+const lightTheme = EditorView.theme({
+  '&': {
+    backgroundColor: '#fff',
+    color: '#24292e',
+  },
+  '.cm-content': {
+    caretColor: '#24292e',
+  },
+});
+
+// Map file extensions to CodeMirror language extensions
+function getLanguageExtension(lang: string | null) {
+  if (!lang) return [];
+  const normalizedLang = lang.toLowerCase();
+  if (normalizedLang === 'json') {
+    return [json()];
+  }
+  // For other languages, CodeMirror will use basic highlighting
+  return [];
+}
+
 /**
- * View syntax highlighted file content.
+ * View syntax highlighted file content using CodeMirror.
  */
 function FileContentView({ content, lang, theme }: Props) {
-  // Uses the syntax highlighter from @git-diff-view/react without any diff-related features.
-  // This allows uniform styling with EditDiffRenderer.
-  const diffFile = useMemo(() => {
-    try {
-      const instance = generateDiffFile(
-        '', // old file
-        '', // old content (empty)
-        '', // new file
-        content, // new content
-        '', // old lang
-        lang || 'plaintext' // new lang
-      );
-      instance.initRaw();
-      return instance;
-    } catch {
-      return null;
-    }
-  }, [content, lang]);
+  // Avoid SSR errors
+  if (typeof window === 'undefined') return null;
 
-  return diffFile ? (
-    <div className="border mt-2">
-      <DiffView
-        diffFile={diffFile}
-        diffViewWrap={false}
-        diffViewTheme={theme}
-        diffViewHighlight
-        diffViewMode={DiffModeEnum.Unified}
-        diffViewFontSize={12}
+  const isDark = theme !== 'light'; // Default to dark theme
+
+  return (
+    <div className="border mt-2 rounded-md overflow-hidden">
+      <CodeMirror
+        value={content}
+        height="auto"
+        theme={isDark ? 'dark' : 'light'}
+        editable={false}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: true,
+          highlightActiveLineGutter: false,
+          highlightActiveLine: false,
+        }}
+        extensions={[
+          ...getLanguageExtension(lang),
+          EditorView.lineWrapping,
+          ...(isDark ? [] : [lightTheme]),
+        ]}
+        style={{
+          fontSize: '12px',
+        }}
       />
     </div>
-  ) : (
-    <pre className="text-xs font-mono overflow-x-auto whitespace-pre">
-      {content}
-    </pre>
   );
 }
 
