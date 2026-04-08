@@ -1,11 +1,14 @@
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
+import { fileSystemApi } from '@/lib/api';
 
 type Props = {
   content: string;
   lang: string | null;
   theme?: 'light' | 'dark';
+  isImage?: boolean;
+  filePath?: string;
 };
 
 // Custom light theme to ensure readable text color
@@ -33,9 +36,23 @@ function getLanguageExtension(lang: string | null) {
 /**
  * View syntax highlighted file content using CodeMirror.
  */
-function FileContentView({ content, lang, theme }: Props) {
+function FileContentView({ content, lang, theme, isImage, filePath }: Props) {
   // Avoid SSR errors
   if (typeof window === 'undefined') return null;
+
+  if (isImage && filePath) {
+    const imageUrl = fileSystemApi.readFileBinaryUrl(filePath);
+    return (
+      <div className="border mt-2 rounded-md overflow-hidden p-4 bg-white">
+        <img
+          src={imageUrl}
+          alt={filePath.split('/').pop() || 'Image'}
+          className="max-w-full h-auto"
+          style={{ maxHeight: '80vh' }}
+        />
+      </div>
+    );
+  }
 
   const isDark = theme !== 'light'; // Default to dark theme
 

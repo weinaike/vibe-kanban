@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, File, Folder, FolderOpen, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Loader2, File, Folder, FolderOpen, ChevronRight, ArrowLeft, GripVertical } from 'lucide-react';
 import { fileSystemApi } from '@/lib/api';
 import { getHighLightLanguageFromPath } from '@/utils/extToLanguage';
 import FileContentView from '@/components/NormalizedConversation/FileContentView';
@@ -26,12 +26,38 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
   const [directoryTree, setDirectoryTree] = useState<FileNode | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [isImageFile, setIsImageFile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'tree' | 'file'>('tree');
+  const [treeWidth, setTreeWidth] = useState(280);
+  const isDragging = useRef(false);
   const loadedPathsRef = useRef<Set<string>>(new Set());
+
+  const handleMouseDown = useCallback(() => {
+    isDragging.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const newWidth = Math.max(180, Math.min(600, e.clientX));
+      setTreeWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
 
   const buildTree = useCallback((entries: DirectoryEntry[]): FileNode[] => {
     return entries
@@ -72,6 +98,7 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
     try {
       const response = await fileSystemApi.readFile(path);
       setFileContent(response.content);
+      setIsImageFile(response.is_image);
       setSelectedFilePath(path);
       setViewMode('file');
       onFileSelect?.(path);
@@ -245,10 +272,13 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Mobile: Show either tree or file, Desktop: Show both side by side */}
         {/* Directory Tree */}
-        <div className={cn(
-          "overflow-y-auto shrink-0",
-          viewMode === 'tree' ? 'w-full' : 'hidden md:block md:w-64 md:border-r'
-        )}>
+        <div
+          className={cn(
+            "overflow-y-auto shrink-0",
+            viewMode === 'tree' ? 'w-full' : 'hidden md:block md:border-r'
+          )}
+          style={viewMode !== 'tree' ? { width: treeWidth } : undefined}
+        >
           {isLoading && !directoryTree && (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 animate-spin" />
@@ -263,6 +293,16 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
             </div>
           )}
         </div>
+
+        {/* Resize Handle */}
+        {viewMode !== 'tree' && (
+          <div
+            className="hidden md:flex items-center justify-center w-1.5 cursor-col-resize hover:bg-accent/50 active:bg-accent shrink-0 transition-colors"
+            onMouseDown={handleMouseDown}
+          >
+            <GripVertical className="w-3 h-3 text-muted-foreground opacity-0 hover:opacity-100" />
+          </div>
+        )}
 
         {/* File Content */}
         <div className={cn(
@@ -286,7 +326,12 @@ export function FilesPanel({ rootPath, onFileSelect }: FilesPanelProps) {
               <div className="hidden md:block text-sm text-muted-foreground mb-2 truncate">
                 {selectedFilePath}
               </div>
-              <FileContentView content={fileContent} lang={language} />
+              <FileContentView
+                content={fileContent}
+                lang={language}
+                isImage={isImageFile}
+                filePath={selectedFilePath ?? undefined}
+              />
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">

@@ -814,6 +814,10 @@ export const fileSystemApi = {
     );
     return handleApiResponse<FileReadResponse>(response);
   },
+
+  readFileBinaryUrl: (path: string): string => {
+    return `/api/filesystem/read-file-binary?path=${encodeURIComponent(path)}`;
+  },
 };
 
 // Repo APIs

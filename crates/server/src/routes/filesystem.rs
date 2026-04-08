@@ -1,7 +1,9 @@
 use axum::{
     Router,
+    body::Body,
     extract::{Query, State},
-    response::Json as ResponseJson,
+    http::{StatusCode, header},
+    response::{Json as ResponseJson, Response},
     routing::get,
 };
 use deployment::Deployment;
@@ -93,9 +95,41 @@ pub async fn read_file(
     }
 }
 
+pub async fn read_file_binary(
+    State(deployment): State<DeploymentImpl>,
+    Query(query): Query<ReadFileQuery>,
+) -> Response {
+    match deployment.filesystem().read_file_binary(query.path).await {
+        Ok((bytes, content_type)) => {
+            let body = Body::from(bytes);
+            Response::builder()
+                .header(header::CONTENT_TYPE, content_type)
+                .body(body)
+                .unwrap_or_else(|_| {
+                    Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Body::from("Failed to build response"))
+                        .unwrap()
+                })
+        }
+        Err(FilesystemError::Io(e)) => {
+            tracing::error!("Failed to read binary file: {}", e);
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::from(format!("Failed to read file: {}", e)))
+                .unwrap()
+        }
+        _ => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::from("Failed to read file"))
+            .unwrap(),
+    }
+}
+
 pub fn router() -> Router<DeploymentImpl> {
     Router::new()
         .route("/filesystem/directory", get(list_directory))
         .route("/filesystem/git-repos", get(list_git_repos))
         .route("/filesystem/read-file", get(read_file))
+        .route("/filesystem/read-file-binary", get(read_file_binary))
 }

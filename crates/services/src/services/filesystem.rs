@@ -38,12 +38,22 @@ pub struct DirectoryEntry {
     pub last_modified: Option<u64>,
 }
 
+const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"];
+
+fn is_image_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| IMAGE_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
 #[derive(Debug, Serialize, TS)]
 #[ts(export)]
 pub struct FileReadResponse {
     pub content: String,
     pub path: String,
     pub is_binary: bool,
+    pub is_image: bool,
 }
 
 impl Default for FilesystemService {
@@ -347,12 +357,15 @@ impl FilesystemService {
             )));
         }
 
+        let is_image = is_image_extension(&path_obj);
+
         // Try reading as text
         match fs::read_to_string(&path_obj) {
             Ok(content) => Ok(FileReadResponse {
                 content,
                 path,
                 is_binary: false,
+                is_image,
             }),
             Err(_) => {
                 // Check if it's a binary file
@@ -360,15 +373,61 @@ impl FilesystemService {
                 let is_binary = bytes.iter().any(|&b| b == 0);
 
                 Ok(FileReadResponse {
-                    content: if is_binary {
+                    content: if is_image {
+                        format!("[Image file - {} bytes]", bytes.len())
+                    } else if is_binary {
                         format!("[Binary file - {} bytes]", bytes.len())
                     } else {
                         String::from_utf8_lossy(&bytes).to_string()
                     },
                     path,
                     is_binary,
+                    is_image,
                 })
             }
         }
+    }
+
+    pub fn mime_type_for_path(path: &Path) -> &'static str {
+        match path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .as_deref()
+        {
+            Some("png") => "image/png",
+            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("gif") => "image/gif",
+            Some("svg") => "image/svg+xml",
+            Some("webp") => "image/webp",
+            Some("bmp") => "image/bmp",
+            Some("ico") => "image/x-icon",
+            _ => "application/octet-stream",
+        }
+    }
+
+    pub async fn read_file_binary(
+        &self,
+        path: String,
+    ) -> Result<(Vec<u8>, String), FilesystemError> {
+        let path_obj = PathBuf::from(&path);
+
+        if !path_obj.exists() {
+            return Err(FilesystemError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "File does not exist",
+            )));
+        }
+
+        if path_obj.is_dir() {
+            return Err(FilesystemError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Path is a directory",
+            )));
+        }
+
+        let bytes = fs::read(&path_obj)?;
+        let content_type = Self::mime_type_for_path(&path_obj).to_string();
+        Ok((bytes, content_type))
     }
 }
